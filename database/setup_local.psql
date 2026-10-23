@@ -1,0 +1,83 @@
+
+\set ON_ERROR_STOP on
+
+-- 1. Create the schema-owner and application roles if needed.
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_roles
+        WHERE rolname = 'airport_owner'
+    ) THEN
+        EXECUTE 'CREATE ROLE airport_owner NOLOGIN';
+    ELSE
+        EXECUTE 'ALTER ROLE airport_owner NOLOGIN';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_roles
+        WHERE rolname = 'airport_app'
+    ) THEN
+        EXECUTE 'CREATE ROLE airport_app LOGIN';
+    ELSE
+        EXECUTE 'ALTER ROLE airport_app LOGIN';
+    END IF;
+END
+$$;
+
+-- 2. Set a password locally without putting it in this file.
+\password airport_app
+
+-- 3. Create the project database if it does not exist.
+-- \gexec is a psql command that executes the generated SQL.
+SELECT format(
+    'CREATE DATABASE %I OWNER %I',
+    'airport_lost_found',
+    'airport_owner'
+)
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM pg_database
+    WHERE datname = 'airport_lost_found'
+)
+\gexec
+
+-- 4. Restrict database connection access.
+REVOKE CONNECT ON DATABASE airport_lost_found FROM PUBLIC;
+GRANT CONNECT ON DATABASE airport_lost_found TO airport_app;
+
+-- 5. Connect to our project database.
+\connect airport_lost_found
+
+-- 6. Configure schema ownership and permissions.
+REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+
+CREATE SCHEMA IF NOT EXISTS app AUTHORIZATION airport_owner;
+ALTER SCHEMA app OWNER TO airport_owner;
+
+REVOKE ALL ON SCHEMA app FROM PUBLIC;
+GRANT USAGE ON SCHEMA app TO airport_app;
+
+-- 7. Grant access to existing tables and sequences.
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON ALL TABLES IN SCHEMA app
+TO airport_app;
+
+GRANT USAGE, SELECT
+ON ALL SEQUENCES IN SCHEMA app
+TO airport_app;
+
+-- 8. Grant the same access to future objects created by airport_owner.
+ALTER DEFAULT PRIVILEGES
+    FOR ROLE airport_owner
+    IN SCHEMA app
+    GRANT SELECT, INSERT, UPDATE, DELETE
+    ON TABLES TO airport_app;
+
+ALTER DEFAULT PRIVILEGES
+    FOR ROLE airport_owner
+    IN SCHEMA app
+    GRANT USAGE, SELECT
+    ON SEQUENCES TO airport_app;
+
+-- Setup complete.
+SELECT current_database() AS database_name;

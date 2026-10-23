@@ -1,0 +1,54 @@
+services:
+  database:
+    image: postgres:17-alpine
+    container_name: airport-lost-found-db
+    environment:
+      POSTGRES_DB: airport_lost_found
+      POSTGRES_USER: airport_admin
+      POSTGRES_PASSWORD: admin_password_123
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./database/init-docker.sql:/docker-entrypoint-initdb.d/00_init.sql:ro
+      - ./database/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./database/02_seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
+      - ./database/05_views.sql:/docker-entrypoint-initdb.d/05_views.sql:ro
+      - ./database/06_triggers.sql:/docker-entrypoint-initdb.d/06_triggers.sql:ro
+      - ./database/11_domain_alignment.sql:/docker-entrypoint-initdb.d/11_domain_alignment.sql:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airport_admin -d airport_lost_found"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend/airport-lost-found-api
+      dockerfile: Dockerfile
+    container_name: airport-lost-found-api
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://database:5432/airport_lost_found
+      DB_USERNAME: airport_app
+      DB_PASSWORD: shivam123
+      PORT: 8080
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: airport-lost-found-frontend
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+
+volumes:
+  pgdata:

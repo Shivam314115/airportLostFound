@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: airport-lost-found
+    runtime: docker
+    plan: free
+    region: oregon
+    healthCheckPath: /api/reference-data
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: DB_URL
+        fromDatabase:
+          name: airport-lost-found-db
+          property: host
+        value: jdbc:postgresql://${airport-lost-found-db.host}:5432/${airport-lost-found-db.database}
+      - key: DB_USERNAME
+        fromDatabase:
+          name: airport-lost-found-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: airport-lost-found-db
+          property: password
+
+databases:
+  - name: airport-lost-found-db
+    databaseName: airport_lost_found
+    user: airport_admin
+    plan: free
+    region: oregon
+    postgresMajorVersion: 16
