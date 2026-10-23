@@ -78,34 +78,56 @@ docker compose logs -f backend
 
 ---
 
-## 4. Deployment Strategy 2: PaaS Platforms (Render / Railway / Fly.io)
+## 4. Deployment Strategy 2: 1-Click Cloud PaaS (Render / Railway / Fly.io)
 
-### 1. PostgreSQL Database Service
-1. Create a Managed PostgreSQL instance on your provider.
-2. Connect to the database using `psql` or the web console and execute the SQL scripts in order:
-   - `database/01_schema.sql`
-   - `database/02_seed.sql`
-   - `database/05_views.sql`
-   - `database/06_triggers.sql`
-   - `database/11_domain_alignment.sql`
+### Option A: Render (Zero-Configuration Blueprint)
+A production Blueprint [`render.yaml`](file:///home/shivam/airportLostFound/render.yaml) is included in the repository root.
 
-### 2. Backend Web Service
-1. Create a new **Web Service** pointing to the repository.
-2. Set Root Directory to: `backend/airport-lost-found-api`.
-3. Choose **Dockerfile** as the build runtime (multi-stage JDK 25 builder provided in `Dockerfile`).
-4. Set Environment Variables:
-   - `DB_URL`: Provided JDBC URL from your managed database.
-   - `DB_USERNAME`: Database user.
-   - `DB_PASSWORD`: Database password.
-   - `PORT`: `8080`.
+1. **Push your code to a GitHub repository:**
+   ```bash
+   git remote add origin https://github.com/YOUR_USERNAME/airportLostFound.git
+   git branch -M main
+   git push -u origin main
+   ```
+2. **Log into Render ([render.com](https://render.com)):**
+   - Click **New +** → **Blueprint**.
+   - Select your GitHub repository `airportLostFound`.
+   - Render reads `render.yaml` and will automatically provision:
+     - **Managed PostgreSQL 16 Database** (`airport-lost-found-db`)
+     - **Unified Web Application** (`airport-lost-found`) running the multi-stage Docker container.
+   - Click **Apply**.
+3. **Automatic Database Bootstrap:**
+   - On first startup, Spring Boot automatically detects an empty cloud database and runs [`database/cloud_bootstrap.sql`](file:///home/shivam/airportLostFound/database/cloud_bootstrap.sql), creating all tables, indexes, triggers, and seed data.
+4. **Instant Public URL:**
+   - Your application will be live at `https://airport-lost-found-xxxx.onrender.com` with free SSL and both frontend & backend unified!
 
-### 3. Frontend Static Web Service
-1. Create a **Static Site** (or Docker Web Service) pointing to the repository.
-2. Set Root Directory: `frontend`.
-3. Build Command: `npm install && npm run build`.
-4. Publish Directory: `dist`.
-5. Rewrite Rules: Route all requests (`/*`) to `/index.html` for client-side routing.
-6. Configure API Proxy: In production, configure your domain's CDN or reverse proxy to route `/api/*` requests to the Backend Web Service.
+---
+
+### Option B: Railway (One-Click Docker Deployment)
+Railway configuration is predefined in [`railway.json`](file:///home/shivam/airportLostFound/railway.json).
+
+1. **Log into Railway ([railway.com](https://railway.com)):**
+   - Click **New Project** → **Deploy from GitHub repo** → select `airportLostFound`.
+   - Click **+ New** → **Database** → **Add PostgreSQL**.
+2. **Environment Configuration:**
+   - Railway automatically sets `DATABASE_URL` on the PostgreSQL service.
+   - Reference `DATABASE_URL` in your web service or link the database to the service.
+   - Spring Boot automatically parses `DATABASE_URL` (format `postgresql://user:pass@host:port/db`) and converts it to JDBC.
+3. **Generate Domain:**
+   - In service **Settings** → **Networking** → Click **Generate Domain**.
+   - Your application is instantly available on `https://xxx.up.railway.app`.
+
+---
+
+### Option C: Fly.io (CLI Deployment)
+1. Install Fly CLI: `curl -L https://fly.io/install.sh | sh`
+2. Create app and launch postgres:
+   ```bash
+   fly launch --no-deploy
+   fly postgres create --name airport-db
+   fly postgres attach airport-db
+   fly deploy
+   ```
 
 ---
 
