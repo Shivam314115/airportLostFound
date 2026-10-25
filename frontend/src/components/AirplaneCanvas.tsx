@@ -82,10 +82,10 @@ export default function AirplaneCanvas() {
           color="#071f38"
         />
 
-        {/* Smooth mouse interaction with damping and angle clamping */}
+        {/* Smooth mouse and touch interaction with damping and clamped angles */}
         <OrbitControls
           enablePan={false}
-          enableZoom={true}
+          enableZoom={false}
           minDistance={3.6}
           maxDistance={8.0}
           minPolarAngle={Math.PI * 0.15}
