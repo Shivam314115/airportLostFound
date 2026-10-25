@@ -5,7 +5,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://baths-possibilities-helmet-costumes.trycloudflare.com/api/$1"
+      "destination": "https://airport-lost-found-backend.onrender.com/api/$1"
     },
     {
       "source": "/plane.glb",
