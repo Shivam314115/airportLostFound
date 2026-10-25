@@ -18,7 +18,7 @@ RUN npm run build
 # ------------------------------------------------------------------------------
 # Stage 2: Build Spring Boot Backend with Embedded Frontend Assets
 # ------------------------------------------------------------------------------
-FROM maven:3.9.9-eclipse-temurin-25 AS backend-builder
+FROM maven:3.9.9-eclipse-temurin-21 AS backend-builder
 WORKDIR /app/backend
 
 COPY backend/airport-lost-found-api/pom.xml .
@@ -34,7 +34,7 @@ RUN ./mvnw clean package -DskipTests -B
 # ------------------------------------------------------------------------------
 # Stage 3: Minimal Production Runtime
 # ------------------------------------------------------------------------------
-FROM eclipse-temurin:25-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup && \
