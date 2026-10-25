@@ -12,6 +12,10 @@ if [ -z "$PORT" ]; then
 fi
 export BACKEND_PORT="$PORT"
 
+# Clean up any stale processes on PORT or 4173
+fuser -k "${PORT}/tcp" 2>/dev/null || true
+fuser -k "4173/tcp" 2>/dev/null || true
+
 echo "========================================================"
 echo " Airport Lost & Found Management System"
 echo " Backend Target Port: $PORT"

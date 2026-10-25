@@ -285,6 +285,16 @@ interface CsrfResponse {
 
 let cachedCsrf: { headerName: string; token: string } | null = null;
 
+function parseApiError(err: any, fallback: string): string {
+  if (err?.fieldErrors && typeof err.fieldErrors === 'object') {
+    const values = Object.values(err.fieldErrors).filter(Boolean);
+    if (values.length > 0) {
+      return values.join('. ');
+    }
+  }
+  return err?.message || fallback;
+}
+
 export async function fetchCsrfToken(): Promise<{ headerName: string; token: string }> {
   try {
     const res = await fetch('/api/auth/csrf', {
@@ -368,6 +378,10 @@ export async function getCurrentUser(): Promise<PassengerProfile | null> {
 }
 
 export async function login(payload: LoginPayload): Promise<PassengerProfile> {
+  const sanitizedPayload: LoginPayload = {
+    email: (payload.email || '').trim(),
+    password: payload.password || '',
+  };
   const csrf = await fetchCsrfToken();
   const res = await fetch('/api/auth/login', {
     method: 'POST',
@@ -376,7 +390,7 @@ export async function login(payload: LoginPayload): Promise<PassengerProfile> {
       'Content-Type': 'application/json',
       [csrf.headerName]: csrf.token,
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(sanitizedPayload),
   });
 
   if (!res.ok) {
@@ -384,7 +398,7 @@ export async function login(payload: LoginPayload): Promise<PassengerProfile> {
       throw new Error('Invalid email or password.');
     }
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || 'Login failed. Please verify your credentials.');
+    throw new Error(parseApiError(err, 'Login failed. Please verify your credentials.'));
   }
 
   // Refresh CSRF after session ID change
@@ -393,6 +407,12 @@ export async function login(payload: LoginPayload): Promise<PassengerProfile> {
 }
 
 export async function register(payload: RegisterPayload): Promise<PassengerProfile> {
+  const sanitizedPayload: RegisterPayload = {
+    fullName: (payload.fullName || '').trim(),
+    email: (payload.email || '').trim(),
+    phone: payload.phone?.trim() || undefined,
+    password: payload.password || '',
+  };
   const csrf = await fetchCsrfToken();
   const res = await fetch('/api/passengers', {
     method: 'POST',
@@ -401,12 +421,12 @@ export async function register(payload: RegisterPayload): Promise<PassengerProfi
       'Content-Type': 'application/json',
       [csrf.headerName]: csrf.token,
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(sanitizedPayload),
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || 'Registration failed. An account with this email may already exist.');
+    throw new Error(parseApiError(err, 'Registration failed. An account with this email may already exist.'));
   }
 
   return res.json();
@@ -438,7 +458,7 @@ export async function createLostReport(payload: CreateLostReportPayload): Promis
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `Failed to submit report (${res.status}). Please check all required fields.`);
+    throw new Error(parseApiError(err, `Failed to submit report (${res.status}). Please check all required fields.`));
   }
 
   return res.json();
@@ -478,7 +498,7 @@ export async function createStaffFoundItem(payload: CreateStaffFoundItemPayload)
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `Failed to log found item (${res.status}).`);
+    throw new Error(parseApiError(err, `Failed to log found item (${res.status}).`));
   }
   return res.json();
 }
@@ -509,7 +529,7 @@ export async function reviewStaffClaim(claimId: number, payload: ReviewClaimPayl
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `Failed to update claim review (${res.status}).`);
+    throw new Error(parseApiError(err, `Failed to update claim review (${res.status}).`));
   }
   return res.json();
 }
@@ -535,7 +555,7 @@ export async function assignStaffStorageSlot(payload: AssignStoragePayload): Pro
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `Failed to assign storage slot (${res.status}).`);
+    throw new Error(parseApiError(err, `Failed to assign storage slot (${res.status}).`));
   }
   return res.json();
 }
@@ -566,7 +586,7 @@ export async function processStaffReturn(payload: ProcessReturnPayload): Promise
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `Failed to process return dispatch (${res.status}).`);
+    throw new Error(parseApiError(err, `Failed to process return dispatch (${res.status}).`));
   }
   return res.json();
 }
@@ -608,7 +628,7 @@ export async function createAdminStaff(payload: CreateStaffPayload): Promise<Sta
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `Failed to create staff member (${res.status}).`);
+    throw new Error(parseApiError(err, `Failed to create staff member (${res.status}).`));
   }
   return res.json();
 }

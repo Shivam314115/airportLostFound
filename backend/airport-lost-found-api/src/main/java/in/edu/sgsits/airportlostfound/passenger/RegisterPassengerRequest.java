@@ -25,13 +25,19 @@ public record RegisterPassengerRequest(
 
         @NotBlank(message = "password is required")
         @Size(
-                min = 12,
+                min = 8,
                 max = 72,
-                message = "password must contain between 12 and 72 characters"
+                message = "password must contain between 8 and 72 characters"
         )
         String password
 
 ) {
+    public RegisterPassengerRequest {
+        fullName = fullName != null ? fullName.trim() : null;
+        email = email != null ? email.trim().toLowerCase(java.util.Locale.ROOT) : null;
+        phone = (phone != null && !phone.trim().isEmpty()) ? phone.trim() : null;
+    }
+
     /**
      * Prevent accidental password exposure if this request is logged.
      */

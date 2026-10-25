@@ -16,6 +16,10 @@ public record LoginRequest(
         String password
 
 ) {
+    public LoginRequest {
+        email = email != null ? email.trim().toLowerCase(java.util.Locale.ROOT) : null;
+    }
+
     /**
      * Avoid exposing the supplied password if this record is logged.
      */

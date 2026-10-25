@@ -306,7 +306,8 @@ export default function App() {
     setAuthError('');
     setIsSubmitting(true);
     try {
-      const profile = await login(loginForm);
+      const email = loginForm.email.trim();
+      const profile = await login({ email, password: loginForm.password });
       setCurrentUser(profile);
       setAuthOpen(false);
       setLoginForm({ email: '', password: '' });
@@ -326,9 +327,15 @@ export default function App() {
     setAuthError('');
     setIsSubmitting(true);
     try {
-      await register(registerForm);
+      const cleanData = {
+        fullName: registerForm.fullName.trim(),
+        email: registerForm.email.trim(),
+        phone: registerForm.phone.trim() || undefined,
+        password: registerForm.password,
+      };
+      await register(cleanData);
       // Automatically log in after registration
-      const profile = await login({ email: registerForm.email, password: registerForm.password });
+      const profile = await login({ email: cleanData.email, password: cleanData.password });
       setCurrentUser(profile);
       setAuthOpen(false);
       setRegisterForm({ fullName: '', email: '', phone: '', password: '' });

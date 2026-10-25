@@ -56,15 +56,25 @@ public class SecurityConfig {
      * Configures CORS for local dev servers and production deployments.
      */
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    public CorsConfigurationSource corsConfigurationSource(
+            @org.springframework.beans.factory.annotation.Value("${cors.allowed-origins:}") String customOrigins) {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of(
+        List<String> origins = new java.util.ArrayList<>(List.of(
                 "http://localhost:*",
                 "http://127.0.0.1:*",
                 "https://*.vercel.app",
                 "https://*.railway.app",
                 "https://*.render.com"
         ));
+        if (customOrigins != null && !customOrigins.isBlank()) {
+            for (String origin : customOrigins.split(",")) {
+                String trimmed = origin.trim();
+                if (!trimmed.isEmpty()) {
+                    origins.add(trimmed);
+                }
+            }
+        }
+        configuration.setAllowedOriginPatterns(origins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
@@ -77,11 +87,12 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
-            SecurityContextRepository securityContextRepository)
+            SecurityContextRepository securityContextRepository,
+            CorsConfigurationSource corsConfigurationSource)
             throws Exception {
 
         http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .cors(cors -> cors.configurationSource(corsConfigurationSource))
 
             // Keep CSRF protection enabled for browser-based sessions, ignoring stateless photo uploads.
             .csrf(csrf -> csrf
