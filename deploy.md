@@ -6,14 +6,29 @@ This guide details instructions for deploying the **AirportLostandFound** system
 
 ## 1. Production Architecture Overview
 
-In production, the system consists of three distinct tiers:
+You can deploy the system in two architectures:
 
+### Architecture A: Hybrid (Vercel Frontend + Railway/Render Backend) — Recommended
+```
+[ Passenger / Staff Browser ]
+          │  HTTPS
+          ▼
+[ Vercel Frontend (your-app.vercel.app) ]
+          │  Rewrites: /api/*  (Vercel Edge Proxy)
+          ▼
+[ Backend (Spring Boot on Railway / Render) ]
+          │  DATABASE_URL (JDBC)
+          ▼
+[ Managed PostgreSQL Database (Railway / Render / Supabase) ]
+```
+
+### Architecture B: Unified Docker (Single Server / PaaS)
 ```
 [ Client Browser ]
        │  (HTTPS :443)
        ▼
-[ Nginx Reverse Proxy / Load Balancer ]
-       ├── Static SPA Routes (/*)  ──► [ Frontend Static Assets / Nginx ]
+[ Nginx / Cloud Proxy ]
+       ├── Static SPA Routes (/*)  ──► [ Embedded React Frontend Assets ]
        └── API Requests (/api/*)   ──► [ Spring Boot Backend (:8080) ]
                                               │  (JDBC)
                                               ▼
