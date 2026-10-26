@@ -461,7 +461,7 @@ public class StaffRepository {
                 """;
         jdbcTemplate.update(matchSql, matchStatus, staffId, now, notes, claimId);
 
-        // If approved, update found item status to 'claimed'
+        // If approved, update found item status to 'claimed' and ensure return_delivery record exists
         if ("approved".equalsIgnoreCase(decision)) {
             String updateFoundSql = """
                     UPDATE app.found_item
@@ -475,6 +475,23 @@ public class StaffRepository {
                     )
                     """;
             jdbcTemplate.update(updateFoundSql, claimId);
+
+            String checkReturnSql = "SELECT COUNT(*) FROM app.return_delivery WHERE claim_id = ?";
+            Integer count = jdbcTemplate.queryForObject(checkReturnSql, Integer.class, claimId);
+            if (count == null || count == 0) {
+                String insertReturnSql = """
+                        INSERT INTO app.return_delivery (
+                            claim_id,
+                            return_method,
+                            return_status,
+                            handled_by_staff_id,
+                            delivery_notes,
+                            created_at
+                        )
+                        VALUES (?, 'counter_handover', 'initiated', ?, 'Claim approved; ready for terminal counter release or courier dispatch.', CURRENT_TIMESTAMP)
+                        """;
+                jdbcTemplate.update(insertReturnSql, claimId, staffId);
+            }
         }
     }
 
@@ -597,38 +614,38 @@ public class StaffRepository {
     public List<StaffReturnItem> findAllReturns(String status) {
         StringBuilder sql = new StringBuilder("""
                 SELECT
-                    rd.return_id,
-                    rd.claim_id,
+                    COALESCE(rd.return_id, 0) AS return_id,
+                    c.claim_id,
                     f.found_item_id,
                     p.full_name AS passenger_name,
                     p.email AS passenger_email,
                     p.phone AS passenger_phone,
                     i.item_name,
-                    rd.return_method,
-                    rd.return_status,
+                    COALESCE(rd.return_method, 'counter_handover') AS return_method,
+                    COALESCE(rd.return_status, 'initiated') AS return_status,
                     rd.handled_by_staff_id,
                     s.full_name AS handled_by_staff_name,
                     rd.delivery_notes,
-                    rd.created_at,
+                    COALESCE(rd.created_at, c.reviewed_at, c.created_at) AS created_at,
                     rd.completed_at
-                FROM app.return_delivery rd
-                JOIN app.claim c ON c.claim_id = rd.claim_id
+                FROM app.claim c
                 JOIN app.item_match m ON m.match_id = c.match_id
                 JOIN app.lost_report lr ON lr.lost_report_id = m.lost_report_id
                 JOIN app.passenger p ON p.passenger_id = lr.passenger_id
                 JOIN app.found_item f ON f.found_item_id = m.found_item_id
                 JOIN app.item i ON i.item_id = f.item_id
-                JOIN app.staff s ON s.staff_id = rd.handled_by_staff_id
-                WHERE 1=1
+                LEFT JOIN app.return_delivery rd ON rd.claim_id = c.claim_id
+                LEFT JOIN app.staff s ON s.staff_id = rd.handled_by_staff_id
+                WHERE c.claim_status = 'approved'
                 """);
 
         List<Object> params = new ArrayList<>();
         if (status != null && !status.isBlank() && !status.equalsIgnoreCase("all")) {
-            sql.append(" AND rd.return_status = ? ");
+            sql.append(" AND COALESCE(rd.return_status, 'initiated') = ? ");
             params.add(status.trim().toLowerCase());
         }
 
-        sql.append(" ORDER BY rd.created_at DESC ");
+        sql.append(" ORDER BY COALESCE(rd.created_at, c.reviewed_at) DESC ");
 
         return jdbcTemplate.query(sql.toString(), params.toArray(), (rs, rowNum) -> new StaffReturnItem(
                 rs.getLong("return_id"),

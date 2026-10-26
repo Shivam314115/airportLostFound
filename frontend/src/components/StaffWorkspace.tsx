@@ -15,6 +15,7 @@ import {
   Lock,
   Boxes,
   X,
+  PackageCheck,
 } from 'lucide-react';
 import Dialog from './ui/Dialog';
 import { ImageUploadWidget } from './ImageUploadWidget';
@@ -75,12 +76,12 @@ export default function StaffWorkspace({
 
   // Determine initial tab based on role
   const getDefaultTab = (): StaffTab => {
-    if (staffRole === 'ground_staff' || staffRole === 'lost_found_agent') return 'intake';
+    if (staffRole === 'ground_staff' || staffRole === 'security_officer' || staffRole === 'lost_found_agent' || staffRole === 'lost_found_officer') return 'intake';
     if (staffRole === 'claims_verification_officer') return 'claims';
     if (staffRole === 'inventory_storage_officer') return 'inventory';
     if (staffRole === 'return_dispatch_officer') return 'dispatches';
     if (staffRole === 'supervisor') return 'supervisor';
-    if (staffRole === 'system_admin') return 'admin';
+    if (staffRole === 'system_admin' || staffRole === 'administrator') return 'admin';
     return 'intake';
   };
 
@@ -190,17 +191,56 @@ export default function StaffWorkspace({
     if (!hasInventoryAccess) return;
     setLoading(true);
     try {
-      const locs = await getStaffStorageLocations();
+      const [locs, items] = await Promise.all([
+        getStaffStorageLocations(),
+        getStaffFoundItems({ status: 'All' }).catch(() => []),
+      ]);
       setStorageLocations(locs);
-      if (locs.length > 0 && !assignStorageId) {
-        setAssignStorageId(locs[0].storageId);
+      setFoundItems(items);
+      if (locs.length > 0) {
+        setAssignStorageId((prev) => (prev ? prev : locs[0].storageId));
       }
     } catch (err) {
       showToast('error', err instanceof Error ? err.message : 'Failed to load storage inventory.');
     } finally {
       setLoading(false);
     }
-  }, [hasInventoryAccess, assignStorageId]);
+  }, [hasInventoryAccess]);
+
+  const openAssignModalFor = (foundItemId?: number, storageId?: number, slotNumber?: number) => {
+    if (foundItemId) {
+      setAssignFoundItemId(foundItemId);
+    } else {
+      const unassigned = foundItems.find((i) => !i.storageName || i.itemStatus === 'awaiting_review');
+      setAssignFoundItemId(unassigned ? unassigned.foundItemId : (foundItems[0]?.foundItemId || ''));
+    }
+
+    const chosenStorageId = storageId || (assignStorageId ? assignStorageId : (storageLocations[0]?.storageId || ''));
+    setAssignStorageId(chosenStorageId);
+
+    if (slotNumber) {
+      setAssignSlotNumber(slotNumber);
+    } else if (chosenStorageId) {
+      const loc = storageLocations.find((l) => l.storageId === Number(chosenStorageId));
+      const firstFree = loc?.slots.find((s) => !s.assignedFoundItemId)?.slotNumber || 1;
+      setAssignSlotNumber(firstFree);
+    } else {
+      setAssignSlotNumber(1);
+    }
+
+    setAssignModalOpen(true);
+  };
+
+  const handleStorageFacilityChange = (newStorageId: number) => {
+    setAssignStorageId(newStorageId);
+    const loc = storageLocations.find((l) => l.storageId === newStorageId);
+    if (loc) {
+      const firstFree = loc.slots.find((s) => !s.assignedFoundItemId)?.slotNumber;
+      if (firstFree) {
+        setAssignSlotNumber(firstFree);
+      }
+    }
+  };
 
   const loadDispatchesData = useCallback(async () => {
     if (!hasDispatchAccess) return;
@@ -311,6 +351,8 @@ export default function StaffWorkspace({
       setSelectedClaim(null);
       setReviewNotes('');
       loadClaimsData();
+      if (hasDispatchAccess) loadDispatchesData();
+      if (hasInventoryAccess) loadInventoryData();
       if (onRefreshPassengerData) onRefreshPassengerData();
     } catch (err) {
       showToast('error', err instanceof Error ? err.message : 'Failed to update claim.');
@@ -321,7 +363,10 @@ export default function StaffWorkspace({
 
   const handleAssignStorageSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!assignFoundItemId || !assignStorageId || !assignSlotNumber) return;
+    if (!assignFoundItemId || !assignStorageId || !assignSlotNumber) {
+      showToast('error', 'Please fill in all storage assignment fields.');
+      return;
+    }
     setLoading(true);
     try {
       await assignStaffStorageSlot({
@@ -332,8 +377,8 @@ export default function StaffWorkspace({
       showToast('success', `Item #${assignFoundItemId} assigned to locker slot #${assignSlotNumber}.`);
       setAssignModalOpen(false);
       setAssignFoundItemId('');
-      loadInventoryData();
-      loadIntakeData();
+      await loadInventoryData();
+      if (hasIntakeAccess) loadIntakeData();
     } catch (err) {
       showToast('error', err instanceof Error ? err.message : 'Failed to assign storage.');
     } finally {
@@ -352,11 +397,13 @@ export default function StaffWorkspace({
         returnStatus: processStatus,
         deliveryNotes: processNotes.trim() || undefined,
       });
-      showToast('success', `Return dispatch #${selectedDispatch.returnId} updated to ${processStatus}.`);
+      showToast('success', `Return dispatch for claim #${selectedDispatch.claimId} updated to ${processStatus}.`);
       setProcessModalOpen(false);
       setSelectedDispatch(null);
       setProcessNotes('');
-      loadDispatchesData();
+      await loadDispatchesData();
+      if (hasInventoryAccess) loadInventoryData();
+      if (hasIntakeAccess) loadIntakeData();
       if (onRefreshPassengerData) onRefreshPassengerData();
     } catch (err) {
       showToast('error', err instanceof Error ? err.message : 'Failed to update return dispatch.');
@@ -820,59 +867,155 @@ export default function StaffWorkspace({
               <button className="button button-outline" onClick={loadInventoryData}>
                 <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> Refresh
               </button>
-              <button className="button button-primary" onClick={() => setAssignModalOpen(true)}>
+              <button className="button button-primary" onClick={() => openAssignModalFor()}>
                 <Boxes size={16} /> Assign Item to Locker
               </button>
             </div>
           </div>
 
-          <div className="vault-cards-grid">
-            {storageLocations.map((loc) => {
-              const occupancyPct = Math.round((loc.occupiedSlots / loc.capacity) * 100);
-              return (
-                <div key={loc.storageId} className="vault-location-card">
-                  <div className="vault-card-header">
-                    <div>
-                      <h4>{loc.storageName}</h4>
-                      <small><Warehouse size={13} /> {loc.locationName}</small>
+          {storageLocations.length === 0 ? (
+            <div className="table-empty" style={{ padding: '40px 20px', background: 'var(--surface)', borderRadius: 'var(--radius-sm)', border: '1px dashed var(--border)', textAlign: 'center' }}>
+              <Warehouse size={36} style={{ color: 'var(--muted)', margin: '0 auto 12px', display: 'block' }} />
+              <h4 style={{ marginBottom: '8px' }}>No Active Storage Facilities Configured</h4>
+              <p style={{ maxWidth: '520px', margin: '0 auto 16px', color: 'var(--muted)', fontSize: '13px' }}>
+                The custody register does not detect any active storage facilities. Please ensure storage locations and slot tables are seeded in the database.
+              </p>
+              <button className="button button-outline" onClick={loadInventoryData}>
+                <RefreshCw size={14} /> Refresh Storage Registry
+              </button>
+            </div>
+          ) : (
+            <div className="vault-cards-grid">
+              {storageLocations.map((loc) => {
+                const occupancyPct = Math.round((loc.occupiedSlots / loc.capacity) * 100);
+                return (
+                  <div key={loc.storageId} className="vault-location-card">
+                    <div className="vault-card-header">
+                      <div>
+                        <h4>{loc.storageName}</h4>
+                        <small><Warehouse size={13} /> {loc.locationName}</small>
+                      </div>
+                      <span className="vault-capacity-badge">
+                        {loc.availableSlots} / {loc.capacity} Slots Free
+                      </span>
                     </div>
-                    <span className="vault-capacity-badge">
-                      {loc.availableSlots} / {loc.capacity} Slots Free
-                    </span>
-                  </div>
 
-                  <p className="vault-desc">{loc.description || 'Secure airport custodial locker facility.'}</p>
+                    <p className="vault-desc">{loc.description || 'Secure airport custodial locker facility.'}</p>
 
-                  <div className="vault-meter">
-                    <div className="vault-meter-fill" style={{ width: `${occupancyPct}%` }} />
-                  </div>
-                  <div className="vault-meter-labels">
-                    <span>Occupancy: {occupancyPct}%</span>
-                    <span>{loc.occupiedSlots} Occupied</span>
-                  </div>
+                    <div className="vault-meter">
+                      <div className="vault-meter-fill" style={{ width: `${occupancyPct}%` }} />
+                    </div>
+                    <div className="vault-meter-labels">
+                      <span>Occupancy: {occupancyPct}%</span>
+                      <span>{loc.occupiedSlots} Occupied</span>
+                    </div>
 
-                  {/* Slot Grid */}
-                  <div className="vault-slots-container">
-                    <div className="slots-title">Locker Slots Visual Map:</div>
-                    <div className="vault-slots-grid">
-                      {loc.slots.map((slot) => {
-                        const isOccupied = !!slot.assignedFoundItemId;
-                        return (
-                          <div
-                            key={slot.slotNumber}
-                            className={`slot-tile ${isOccupied ? 'slot-tile-occupied' : 'slot-tile-free'}`}
-                            title={isOccupied ? `Slot ${slot.slotNumber}: ${slot.assignedItemName} (Item #${slot.assignedFoundItemId})` : `Slot ${slot.slotNumber}: Available`}
-                          >
-                            <span className="slot-num">{slot.slotNumber}</span>
-                            <span className="slot-state">{isOccupied ? 'Occupied' : 'Free'}</span>
-                          </div>
-                        );
-                      })}
+                    {/* Slot Grid */}
+                    <div className="vault-slots-container">
+                      <div className="slots-title">Locker Slots Visual Map:</div>
+                      <div className="vault-slots-grid">
+                        {loc.slots.map((slot) => {
+                          const isOccupied = !!slot.assignedFoundItemId;
+                          return (
+                            <div
+                              key={slot.slotNumber}
+                              className={`slot-tile ${isOccupied ? 'slot-tile-occupied' : 'slot-tile-free'}`}
+                              onClick={() => !isOccupied && openAssignModalFor(undefined, loc.storageId, slot.slotNumber)}
+                              style={{ cursor: isOccupied ? 'default' : 'pointer' }}
+                              title={
+                                isOccupied
+                                  ? `Slot ${slot.slotNumber}: ${slot.assignedItemName} (Item #${slot.assignedFoundItemId})`
+                                  : `Slot ${slot.slotNumber}: Free — Click to allocate an item here`
+                              }
+                            >
+                              <span className="slot-num">{slot.slotNumber}</span>
+                              <span className="slot-state">{isOccupied ? 'Occupied' : 'Free'}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+          )}
+
+          {/* Recovered Items Pending Vault Storage */}
+          <div style={{ marginTop: '32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+              <div>
+                <h4 style={{ margin: 0, fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <PackageCheck size={18} style={{ color: 'var(--teal)' }} />
+                  Recovered Items Awaiting Vault Locker Allocation
+                </h4>
+                <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--muted)' }}>
+                  Unassigned items logged from patrol sweeps and terminal intake that must be secured in a vault locker.
+                </p>
+              </div>
+              <span className="records-count">
+                <strong>{foundItems.filter((i) => !i.storageName || i.itemStatus === 'awaiting_review').length}</strong> items pending
+              </span>
+            </div>
+
+            <div className="staff-table-wrap">
+              <table className="staff-table">
+                <thead>
+                  <tr>
+                    <th>Item #</th>
+                    <th>Property Name</th>
+                    <th>Category</th>
+                    <th>Discovered Location</th>
+                    <th>Condition</th>
+                    <th>Current Storage</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {foundItems.filter((i) => !i.storageName || i.itemStatus === 'awaiting_review').length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="table-empty" style={{ padding: '24px' }}>
+                        All recovered property is currently safely assigned to custody locker slots.
+                      </td>
+                    </tr>
+                  ) : (
+                    foundItems
+                      .filter((i) => !i.storageName || i.itemStatus === 'awaiting_review')
+                      .map((item) => (
+                        <tr key={item.foundItemId}>
+                          <td><span className="mono-code">#{item.foundItemId}</span></td>
+                          <td>
+                            <strong>{item.itemName}</strong>
+                            {item.brand && <small className="table-sub">{item.brand} {item.colour && `· ${item.colour}`}</small>}
+                          </td>
+                          <td><span className="category-pill">{item.categoryName || 'General'}</span></td>
+                          <td>{item.foundLocationName || 'Terminal'}</td>
+                          <td>
+                            <span className="condition-badge">{item.itemCondition || 'Good'}</span>
+                          </td>
+                          <td>
+                            {item.storageName ? (
+                              <span className="table-tag table-tag-stored">
+                                {item.storageName} (Slot {item.slotNumber})
+                              </span>
+                            ) : (
+                              <span className="table-tag table-tag-pending">Unallocated</span>
+                            )}
+                          </td>
+                          <td>
+                            <button
+                              className="button button-small button-primary"
+                              onClick={() => openAssignModalFor(item.foundItemId)}
+                            >
+                              <Boxes size={13} /> Assign Slot
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
       )}
@@ -1367,6 +1510,12 @@ export default function StaffWorkspace({
         className="staff-modal"
       >
         <form onSubmit={handleAssignStorageSubmit} className="dialog-form">
+          {storageLocations.length === 0 && (
+            <div style={{ padding: '10px 14px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: 'var(--radius-xs)', fontSize: '13px', color: '#b91c1c' }}>
+              <strong>Notice:</strong> No storage locations are configured in the database. Please ensure storage cabinets are seeded.
+            </div>
+          )}
+
           <label className="field">
             <span className="field-label">Found Item to Store *</span>
             <select
@@ -1379,7 +1528,7 @@ export default function StaffWorkspace({
                 .filter((item) => item.itemStatus === 'awaiting_review' || !item.storageName)
                 .map((item) => (
                   <option key={item.foundItemId} value={item.foundItemId}>
-                    #{item.foundItemId} - {item.itemName} ({item.categoryName})
+                    #{item.foundItemId} - {item.itemName} ({item.categoryName || 'General'}) {item.storageName ? `[In: ${item.storageName}]` : '[Unallocated]'}
                   </option>
                 ))}
             </select>
@@ -1390,13 +1539,17 @@ export default function StaffWorkspace({
             <select
               required
               value={assignStorageId}
-              onChange={(e) => setAssignStorageId(Number(e.target.value))}
+              onChange={(e) => handleStorageFacilityChange(Number(e.target.value))}
             >
-              {storageLocations.map((loc) => (
-                <option key={loc.storageId} value={loc.storageId}>
-                  {loc.storageName} ({loc.availableSlots} slots available)
-                </option>
-              ))}
+              {storageLocations.length === 0 ? (
+                <option value="">No storage facilities available</option>
+              ) : (
+                storageLocations.map((loc) => (
+                  <option key={loc.storageId} value={loc.storageId}>
+                    {loc.storageName} ({loc.availableSlots} / {loc.capacity} slots free)
+                  </option>
+                ))
+              )}
             </select>
           </label>
 
@@ -1412,7 +1565,11 @@ export default function StaffWorkspace({
             />
           </label>
 
-          <button type="submit" className="button button-primary button-full" disabled={loading}>
+          <button
+            type="submit"
+            className="button button-primary button-full"
+            disabled={loading || storageLocations.length === 0}
+          >
             {loading ? 'Assigning Slot...' : 'Confirm Storage Assignment'}
           </button>
         </form>

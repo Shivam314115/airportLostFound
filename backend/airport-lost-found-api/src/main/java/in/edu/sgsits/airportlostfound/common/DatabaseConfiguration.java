@@ -99,19 +99,41 @@ public class DatabaseConfiguration {
                 }
 
                 if (schemaExists) {
-                    log.info("Database schema (app.lost_report) already initialized. Skipping cloud bootstrap.");
-                    return;
+                    log.info("Database schema (app.lost_report) already initialized. Checking storage and workflow seeds...");
+                } else {
+                    log.info("Database is empty or missing app schema. Running cloud_bootstrap.sql...");
+                    Resource script = new ClassPathResource("database/cloud_bootstrap.sql");
+                    if (script.exists()) {
+                        ResourceDatabasePopulator populator = new ResourceDatabasePopulator(script);
+                        populator.setContinueOnError(true);
+                        populator.populate(conn);
+                        log.info("Cloud database bootstrap completed successfully!");
+                    } else {
+                        log.warn("database/cloud_bootstrap.sql not found on classpath.");
+                    }
                 }
 
-                log.info("Database is empty or missing app schema. Running cloud_bootstrap.sql...");
-                Resource script = new ClassPathResource("database/cloud_bootstrap.sql");
-                if (script.exists()) {
-                    ResourceDatabasePopulator populator = new ResourceDatabasePopulator(script);
-                    populator.setContinueOnError(true);
-                    populator.populate(conn);
-                    log.info("Cloud database bootstrap completed successfully!");
-                } else {
-                    log.warn("database/cloud_bootstrap.sql not found on classpath.");
+                // Check if app.storage_location has any records. If not, auto-seed storage and demonstration workflow records
+                boolean hasStorage = false;
+                try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM app.storage_location")) {
+                    if (rs.next() && rs.getInt(1) > 0) {
+                        hasStorage = true;
+                    }
+                } catch (Exception e) {
+                    log.debug("Could not query app.storage_location: {}", e.getMessage());
+                }
+
+                if (!hasStorage) {
+                    log.info("No storage locations found in database. Initializing default storage facilities and workflow seeds...");
+                    Resource storageScript = new ClassPathResource("database/12_storage_and_workflow_seed.sql");
+                    if (storageScript.exists()) {
+                        ResourceDatabasePopulator populator = new ResourceDatabasePopulator(storageScript);
+                        populator.setContinueOnError(true);
+                        populator.populate(conn);
+                        log.info("Default storage locations and workflow seeds successfully applied!");
+                    } else {
+                        log.warn("database/12_storage_and_workflow_seed.sql not found on classpath.");
+                    }
                 }
 
             } catch (Exception ex) {

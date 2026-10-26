@@ -525,10 +525,12 @@ export default function App() {
               </button>
             )}
 
-            <button className="button button-primary header-report" onClick={handleOpenReport}>
-              <Plus size={17} />
-              <span>Report an item</span>
-            </button>
+            {currentUser?.userType !== 'staff' && (
+              <button className="button button-primary header-report" onClick={handleOpenReport}>
+                <Plus size={17} />
+                <span>Report an item</span>
+              </button>
+            )}
           </div>
 
           <button
