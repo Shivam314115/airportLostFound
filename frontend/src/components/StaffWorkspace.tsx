@@ -61,6 +61,10 @@ export default function StaffWorkspace({
   const authorities = currentUser.authorities || [];
   const staffRole = currentUser.staffRole || 'lost_found_agent';
 
+  // Subrole identification helpers
+  const isGroundStaff = staffRole === 'ground_staff' || staffRole === 'security_officer';
+  const isLostFoundAgent = staffRole === 'lost_found_agent' || staffRole === 'lost_found_officer';
+
   // Permission checkers
   const hasIntakeAccess = authorities.includes('ROLE_STAFF_INTAKE') || authorities.includes('ROLE_SYSTEM_ADMIN');
   const hasClaimsAccess = authorities.includes('ROLE_CLAIMS_OFFICER') || authorities.includes('ROLE_SYSTEM_ADMIN');
@@ -408,18 +412,30 @@ export default function StaffWorkspace({
       <section className="staff-header-banner">
         <div className="staff-header-left">
           <div className="staff-role-pill">
-            <ShieldCheck size={14} />
+            {isGroundStaff ? <ShieldCheck size={14} /> : <Luggage size={14} />}
             <span>{currentUser.staffRoleTitle || 'Airport Staff'}</span>
           </div>
-          <h2>Airport Custody & Operational Register</h2>
+          <h2>
+            {isGroundStaff
+              ? 'Airside Patrol & Custody Intake Console'
+              : isLostFoundAgent
+              ? 'Terminal Lost & Found Custody Desk'
+              : 'Airport Custody & Operational Register'}
+          </h2>
           <p className="staff-header-subtitle">
-            Restricted role-based terminal console for property intake, biometric/ID verification, physical vault custody, and property dispatch.
+            {isGroundStaff
+              ? 'Terminal airside discovery console for logging unattended items across security checkpoints, gates, and aircraft cabins to establish an immediate chain of custody.'
+              : isLostFoundAgent
+              ? 'Landside custody counter console for item cataloging, physical condition grading, photo evidence documentation, and cross-terminal registry searches.'
+              : 'Restricted role-based terminal console for property intake, biometric/ID verification, physical vault custody, and property dispatch.'}
           </p>
         </div>
 
         <div className="staff-header-right">
           <div className="staff-actor-card">
-            <span className="staff-actor-badge">Active Duty</span>
+            <span className="staff-actor-badge">
+              {isGroundStaff ? 'Airside Clearance: Active' : isLostFoundAgent ? 'Custody Desk: Counter 1' : 'Active Duty'}
+            </span>
             <strong>{currentUser.fullName}</strong>
             <small>{currentUser.email}</small>
           </div>
@@ -441,8 +457,8 @@ export default function StaffWorkspace({
           onClick={() => hasIntakeAccess && setActiveTab('intake')}
           disabled={!hasIntakeAccess}
         >
-          <Luggage size={16} />
-          <span>Intake Desk</span>
+          {isGroundStaff ? <ShieldCheck size={16} /> : <Luggage size={16} />}
+          <span>{isGroundStaff ? 'Airside Patrol Intake' : isLostFoundAgent ? 'Custody Desk Register' : 'Intake Desk'}</span>
           {!hasIntakeAccess && <Lock size={12} className="lock-icon" />}
         </button>
 
@@ -504,18 +520,55 @@ export default function StaffWorkspace({
         <section className="staff-panel">
           <div className="staff-panel-header">
             <div>
-              <h3>Custody Intake & Item Register</h3>
-              <p>Log newly discovered baggage, electronics, and documents handed over by terminal staff or passengers.</p>
+              <h3>
+                {isGroundStaff
+                  ? 'Airside Discovery & Checkpoint Intake'
+                  : isLostFoundAgent
+                  ? 'Terminal Custody Desk & Inventory Register'
+                  : 'Custody Intake & Item Register'}
+              </h3>
+              <p>
+                {isGroundStaff
+                  ? 'Log unattended baggage and property recovered during gate patrols, cabin sweeps, or security screening into the official chain of custody.'
+                  : isLostFoundAgent
+                  ? 'Catalog property handed over at the counter, record condition assessments, and search the active custody register for passenger inquiries.'
+                  : 'Log newly discovered baggage, electronics, and documents handed over by terminal staff or passengers.'}
+              </p>
             </div>
             <div className="staff-panel-actions">
               <button className="button button-outline" onClick={loadIntakeData} title="Refresh item register">
                 <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> Refresh
               </button>
               <button className="button button-primary" onClick={() => setNewFoundModalOpen(true)}>
-                <Plus size={16} /> Log Found Property
+                <Plus size={16} /> {isGroundStaff ? 'Log Patrol Discovery' : 'Intake Recovered Item'}
               </button>
             </div>
           </div>
+
+          {/* Role Operational Context Banner */}
+          {isGroundStaff && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'rgba(2, 132, 199, 0.08)', border: '1px solid rgba(2, 132, 199, 0.22)', borderRadius: 'var(--radius-xs)', marginBottom: '16px' }}>
+              <ShieldCheck size={22} style={{ color: '#0284c7', flexShrink: 0 }} />
+              <div>
+                <strong style={{ fontSize: '13px', color: '#0369a1', display: 'block' }}>Field Patrol Mode — Airside Checkpoint Discovery</strong>
+                <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
+                  You are authenticated with <strong>Airside Terminal Clearance</strong>. Log unattended items immediately upon recovery to record time and location proof. Custody handovers and vault storage assignments are completed at the landside desk.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {isLostFoundAgent && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'rgba(8, 127, 137, 0.08)', border: '1px solid rgba(8, 127, 137, 0.22)', borderRadius: 'var(--radius-xs)', marginBottom: '16px' }}>
+              <Luggage size={22} style={{ color: 'var(--teal)', flexShrink: 0 }} />
+              <div>
+                <strong style={{ fontSize: '13px', color: 'var(--teal)', display: 'block' }}>Custody Counter Mode — Terminal 1 & 2 Intake Specialist</strong>
+                <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
+                  You are authenticated as <strong>Lost & Found Agent</strong> stationed at the Landside Custody Counter. You have full authority to catalog condition assessments, upload photo evidence, and search cross-terminal inventory for walk-in passengers.
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Search & Filters */}
           <div className="staff-search-row">
@@ -1104,8 +1157,20 @@ export default function StaffWorkspace({
       <Dialog
         open={newFoundModalOpen}
         onOpenChange={setNewFoundModalOpen}
-        title="Log Discovered Property into Custody"
-        description="Register an item found in the terminal, security gate, or aircraft cabin into the official audit register."
+        title={
+          isGroundStaff
+            ? 'Log Airside Patrol Discovery'
+            : isLostFoundAgent
+            ? 'Custody Desk Property Intake'
+            : 'Log Discovered Property into Custody'
+        }
+        description={
+          isGroundStaff
+            ? 'Establish an official chain-of-custody record for property found during security sweeps, gate checks, or cabin cleaning.'
+            : isLostFoundAgent
+            ? 'Catalog property received at the Lost & Found reception counter with condition evaluation and photographic evidence.'
+            : 'Register an item found in the terminal, security gate, or aircraft cabin into the official audit register.'
+        }
         className="staff-modal"
       >
         <form onSubmit={handleRegisterFoundItem} className="dialog-form">
@@ -1218,7 +1283,13 @@ export default function StaffWorkspace({
           />
 
           <button type="submit" className="button button-primary button-full" disabled={loading}>
-            {loading ? 'Submitting to Register...' : 'Log Found Property'}
+            {loading
+              ? 'Submitting to Register...'
+              : isGroundStaff
+              ? 'Submit Patrol Discovery to Custody'
+              : isLostFoundAgent
+              ? 'Register Item into Counter Custody'
+              : 'Log Found Property'}
           </button>
         </form>
       </Dialog>
