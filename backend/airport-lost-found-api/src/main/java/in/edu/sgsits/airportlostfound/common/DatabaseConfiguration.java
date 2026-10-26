@@ -113,6 +113,29 @@ public class DatabaseConfiguration {
                     }
                 }
 
+                // Self-healing schema migrations for domain alignment
+                try {
+                    String domainAlignmentMigration = """
+                        ALTER TABLE app.found_item ADD COLUMN IF NOT EXISTS stored_at TIMESTAMPTZ;
+                        ALTER TABLE app.found_item ADD COLUMN IF NOT EXISTS storage_id BIGINT;
+                        ALTER TABLE app.found_item ADD COLUMN IF NOT EXISTS slot_number INT;
+                        ALTER TABLE app.item_photo ADD COLUMN IF NOT EXISTS found_item_id BIGINT;
+                        ALTER TABLE app.item_photo ADD COLUMN IF NOT EXISTS photo_type VARCHAR(50) DEFAULT 'overview';
+                        ALTER TABLE app.claim ADD COLUMN IF NOT EXISTS verifying_staff_id BIGINT;
+                        ALTER TABLE app.claim ADD COLUMN IF NOT EXISTS approving_staff_id BIGINT;
+                        ALTER TABLE app.claim ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
+                        ALTER TABLE app.claim ADD COLUMN IF NOT EXISTS verification_status VARCHAR(25);
+                        ALTER TABLE app.return_delivery ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP;
+                        ALTER TABLE app.return_delivery ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ;
+                        ALTER TABLE app.storage_assignment ADD COLUMN IF NOT EXISTS released_at TIMESTAMPTZ;
+                        ALTER TABLE app.storage_slot ADD COLUMN IF NOT EXISTS slot_status VARCHAR(20) DEFAULT 'available';
+                    """;
+                    stmt.execute(domainAlignmentMigration);
+                    log.info("Domain alignment columns verified.");
+                } catch (Exception ex) {
+                    log.debug("Domain alignment migration skipped or not needed: {}", ex.getMessage());
+                }
+
                 // Check if app.storage_location has any records. If not, auto-seed storage and demonstration workflow records
                 boolean hasStorage = false;
                 try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM app.storage_location")) {

@@ -131,7 +131,7 @@ export default function StaffWorkspace({
   const [dispatchFilter, setDispatchFilter] = useState('All');
   const [processModalOpen, setProcessModalOpen] = useState(false);
   const [selectedDispatch, setSelectedDispatch] = useState<StaffReturnItem | null>(null);
-  const [processStatus, setProcessStatus] = useState<'initiated' | 'in_transit' | 'completed'>('completed');
+  const [processStatus, setProcessStatus] = useState<'initiated' | 'in_transit' | 'completed' | 'failed' | 'cancelled'>('completed');
   const [processMethod, setProcessMethod] = useState<'counter_handover' | 'delivery'>('counter_handover');
   const [processNotes, setProcessNotes] = useState('');
 
@@ -1098,7 +1098,7 @@ export default function StaffWorkspace({
                           onClick={() => {
                             setSelectedDispatch(disp);
                             setProcessMethod(disp.returnMethod);
-                            setProcessStatus(disp.returnStatus as 'initiated' | 'in_transit' | 'completed');
+                            setProcessStatus(disp.returnStatus as 'initiated' | 'in_transit' | 'completed' | 'failed' | 'cancelled');
                             setProcessNotes(disp.deliveryNotes || '');
                             setProcessModalOpen(true);
                           }}
@@ -1607,11 +1607,13 @@ export default function StaffWorkspace({
               <span className="field-label">Dispatch Status *</span>
               <select
                 value={processStatus}
-                onChange={(e) => setProcessStatus(e.target.value as 'initiated' | 'in_transit' | 'completed')}
+                onChange={(e) => setProcessStatus(e.target.value as 'initiated' | 'in_transit' | 'completed' | 'failed' | 'cancelled')}
               >
                 <option value="initiated">Initiated (Preparing)</option>
                 <option value="in_transit">In Transit (Dispatched via Courier)</option>
                 <option value="completed">Completed (Released to Passenger)</option>
+                <option value="failed">Delivery Attempt Failed</option>
+                <option value="cancelled">Handover Cancelled</option>
               </select>
             </label>
 

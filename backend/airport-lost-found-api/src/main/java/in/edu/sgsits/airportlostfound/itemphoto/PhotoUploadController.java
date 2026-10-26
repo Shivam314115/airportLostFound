@@ -81,12 +81,16 @@ public class PhotoUploadController {
     /**
      * Upload an image via JSON with Base64 dataUrl or direct image URL.
      */
-    @PostMapping(value = "/upload", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = {"/upload", "/upload-base64"}, consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> uploadJson(@RequestBody Map<String, String> payload) {
         String dataUrl = payload.get("dataUrl");
+        if (dataUrl == null || dataUrl.isBlank()) {
+            dataUrl = payload.get("base64Data");
+        }
         String photoUrl = payload.get("photoUrl");
         String caption = payload.getOrDefault("caption", "");
         String photoType = payload.getOrDefault("photoType", "overview");
+        String clientFilename = payload.get("filename");
 
         if (photoUrl != null && !photoUrl.isBlank()) {
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
@@ -97,22 +101,31 @@ public class PhotoUploadController {
         }
 
         if (dataUrl == null || dataUrl.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Either dataUrl or photoUrl is required.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Either dataUrl, base64Data or photoUrl is required.");
         }
 
         try {
-            // Parse data URL format: data:image/png;base64,iVBORw...
-            String[] parts = dataUrl.split(",");
-            String metadata = parts[0];
-            String base64Data = parts.length > 1 ? parts[1] : parts[0];
-
+            // Parse data URL format: data:image/png;base64,iVBORw... or raw base64 string
+            String base64Data = dataUrl;
             String extension = ".png";
-            if (metadata.contains("image/jpeg") || metadata.contains("image/jpg")) {
-                extension = ".jpg";
-            } else if (metadata.contains("image/webp")) {
-                extension = ".webp";
-            } else if (metadata.contains("image/gif")) {
-                extension = ".gif";
+
+            if (dataUrl.contains(",")) {
+                String[] parts = dataUrl.split(",", 2);
+                String metadata = parts[0];
+                base64Data = parts[1];
+
+                if (metadata.contains("image/jpeg") || metadata.contains("image/jpg")) {
+                    extension = ".jpg";
+                } else if (metadata.contains("image/webp")) {
+                    extension = ".webp";
+                } else if (metadata.contains("image/gif")) {
+                    extension = ".gif";
+                }
+            } else if (clientFilename != null && clientFilename.contains(".")) {
+                String ext = getExtension(clientFilename);
+                if (isValidImageExtension(ext)) {
+                    extension = ext;
+                }
             }
 
             byte[] decoded = Base64.getDecoder().decode(base64Data);

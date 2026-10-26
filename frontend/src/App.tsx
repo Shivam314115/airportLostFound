@@ -232,7 +232,7 @@ export default function App() {
     estimatedValue: '',
     lostAt: new Date().toISOString().slice(0, 16),
     locationId: 1,
-    flightId: 1,
+    flightId: '' as number | string,
     additionalDetails: '',
     photos: [] as PhotoAttachment[],
   });
@@ -403,7 +403,7 @@ export default function App() {
           estimatedValue: '',
           lostAt: new Date().toISOString().slice(0, 16),
           locationId: locations[0]?.locationId || 1,
-          flightId: flights[0]?.flightId || 1,
+          flightId: '' as number | string,
           additionalDetails: '',
           photos: [],
         });
@@ -1517,8 +1517,9 @@ export default function App() {
             <Field label="Associated flight itinerary">
               <select
                 value={reportForm.flightId}
-                onChange={(e) => setReportForm((prev) => ({ ...prev, flightId: Number(e.target.value) }))}
+                onChange={(e) => setReportForm((prev) => ({ ...prev, flightId: e.target.value ? Number(e.target.value) : '' }))}
               >
+                <option value="">No associated flight / Not applicable</option>
                 {flights.map((f) => (
                   <option key={f.flightId} value={f.flightId}>
                     {f.airline} ({f.flightNumber})

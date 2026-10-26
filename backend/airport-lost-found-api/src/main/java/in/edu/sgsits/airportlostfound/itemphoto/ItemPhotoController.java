@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api")
@@ -63,8 +64,8 @@ public class ItemPhotoController {
             @Valid @RequestBody ItemPhotoRequest request) {
 
         // Get itemId for this foundItem
-        List<ItemPhoto> existing = itemPhotoRepository.findByFoundItemId(foundItemId);
-        long itemId = !existing.isEmpty() ? existing.get(0).itemId() : foundItemId;
+        long itemId = itemPhotoRepository.findItemIdByFoundItemId(foundItemId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Found item not found."));
         int nextNumber = itemPhotoRepository.getNextPhotoNumber(itemId);
 
         itemPhotoRepository.savePhoto(

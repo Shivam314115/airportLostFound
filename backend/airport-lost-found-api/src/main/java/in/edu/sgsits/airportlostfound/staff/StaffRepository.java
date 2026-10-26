@@ -420,36 +420,7 @@ public class StaffRepository {
     public void reviewClaim(long claimId, String decision, String verificationMethod, String notes, long staffId) {
         OffsetDateTime now = OffsetDateTime.now();
 
-        // If approved, create or update identity_verification first because trigger fn_validate_claim_approval checks it!
-        if ("approved".equalsIgnoreCase(decision)) {
-            String method = (verificationMethod != null && !verificationMethod.isBlank())
-                    ? verificationMethod : "in_person_document_check";
-
-            String insertIdVerif = """
-                    INSERT INTO app.identity_verification (
-                        claim_id,
-                        verification_method,
-                        verification_result,
-                        verified_by_staff_id,
-                        verification_notes,
-                        verified_at
-                    )
-                    VALUES (?, ?, 'verified', ?, ?, ?)
-                    """;
-            jdbcTemplate.update(insertIdVerif, claimId, method, staffId, notes, now);
-        }
-
-        String claimSql = """
-                UPDATE app.claim
-                SET claim_status = ?,
-                    reviewed_by_staff_id = ?,
-                    reviewed_at = ?,
-                    decision_notes = ?
-                WHERE claim_id = ?
-                """;
-        jdbcTemplate.update(claimSql, decision, staffId, now, notes, claimId);
-
-        // Update match status accordingly
+        // 1. Update match status FIRST (trigger fn_validate_claim_approval verifies item_match.verification_status == 'verified')
         String matchStatus = "approved".equalsIgnoreCase(decision) ? "verified" : ("rejected".equalsIgnoreCase(decision) ? "rejected" : "under_review");
         String matchSql = """
                 UPDATE app.item_match
@@ -461,7 +432,54 @@ public class StaffRepository {
                 """;
         jdbcTemplate.update(matchSql, matchStatus, staffId, now, notes, claimId);
 
-        // If approved, update found item status to 'claimed' and ensure return_delivery record exists
+        // 2. If approved, create or update identity_verification to 'verified' BEFORE updating claim
+        // (trigger fn_validate_claim_approval requires verified identity before claim approval)
+        if ("approved".equalsIgnoreCase(decision)) {
+            String method = (verificationMethod != null && !verificationMethod.isBlank())
+                    ? verificationMethod : "in_person_document_check";
+
+            String checkIdSql = "SELECT COUNT(*) FROM app.identity_verification WHERE claim_id = ?";
+            Integer idCount = jdbcTemplate.queryForObject(checkIdSql, Integer.class, claimId);
+
+            if (idCount != null && idCount > 0) {
+                String updateIdVerif = """
+                        UPDATE app.identity_verification
+                        SET verification_method = ?,
+                            verification_result = 'verified',
+                            verified_by_staff_id = ?,
+                            verification_notes = ?,
+                            verified_at = ?
+                        WHERE claim_id = ?
+                        """;
+                jdbcTemplate.update(updateIdVerif, method, staffId, notes, now, claimId);
+            } else {
+                String insertIdVerif = """
+                        INSERT INTO app.identity_verification (
+                            claim_id,
+                            verification_method,
+                            verification_result,
+                            verified_by_staff_id,
+                            verification_notes,
+                            verified_at
+                        )
+                        VALUES (?, ?, 'verified', ?, ?, ?)
+                        """;
+                jdbcTemplate.update(insertIdVerif, claimId, method, staffId, notes, now);
+            }
+        }
+
+        // 3. Update claim status (triggers now pass smoothly)
+        String claimSql = """
+                UPDATE app.claim
+                SET claim_status = ?,
+                    reviewed_by_staff_id = ?,
+                    reviewed_at = ?,
+                    decision_notes = ?
+                WHERE claim_id = ?
+                """;
+        jdbcTemplate.update(claimSql, decision, staffId, now, notes, claimId);
+
+        // 4. If approved, update found item status to 'claimed' and ensure return_delivery record exists
         if ("approved".equalsIgnoreCase(decision)) {
             String updateFoundSql = """
                     UPDATE app.found_item
@@ -564,7 +582,27 @@ public class StaffRepository {
     }
 
     public void assignStorageSlot(long foundItemId, long storageId, int slotNumber, long staffId) {
-        // Release any existing assignment for this item
+        // 1. Update found item status to 'stored' FIRST so trigger fn_validate_storage_assignment passes
+        String updateItemSql = """
+                UPDATE app.found_item
+                SET item_status = 'stored',
+                    storage_id = ?,
+                    slot_number = ?,
+                    stored_at = COALESCE(stored_at, CURRENT_TIMESTAMP),
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE found_item_id = ?
+                """;
+        jdbcTemplate.update(updateItemSql, storageId, slotNumber, foundItemId);
+
+        // 2. Ensure the slot record exists in app.storage_slot before assignment
+        String ensureSlotSql = """
+                INSERT INTO app.storage_slot (storage_id, slot_number, slot_status)
+                VALUES (?, ?, 'available')
+                ON CONFLICT (storage_id, slot_number) DO NOTHING
+                """;
+        jdbcTemplate.update(ensureSlotSql, storageId, slotNumber);
+
+        // 3. Release any existing assignment for this item
         String releaseSql = """
                 UPDATE app.storage_assignment
                 SET released_at = CURRENT_TIMESTAMP
@@ -572,7 +610,7 @@ public class StaffRepository {
                 """;
         jdbcTemplate.update(releaseSql, foundItemId);
 
-        // Insert new assignment
+        // 4. Insert new assignment
         String assignSql = """
                 INSERT INTO app.storage_assignment (
                     found_item_id,
@@ -584,18 +622,6 @@ public class StaffRepository {
                 VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
                 """;
         jdbcTemplate.update(assignSql, foundItemId, storageId, slotNumber, staffId);
-
-        // Update found item status to 'stored', assign slot and stored_at timestamp
-        String updateItemSql = """
-                UPDATE app.found_item
-                SET item_status = 'stored',
-                    storage_id = ?,
-                    slot_number = ?,
-                    stored_at = COALESCE(stored_at, CURRENT_TIMESTAMP),
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE found_item_id = ?
-                """;
-        jdbcTemplate.update(updateItemSql, storageId, slotNumber, foundItemId);
     }
 
     public void insertFoundItemPhoto(long itemId, long foundItemId, int photoNumber, String photoUrl, String caption, String photoType) {
@@ -623,8 +649,8 @@ public class StaffRepository {
                     i.item_name,
                     COALESCE(rd.return_method, 'counter_handover') AS return_method,
                     COALESCE(rd.return_status, 'initiated') AS return_status,
-                    rd.handled_by_staff_id,
-                    s.full_name AS handled_by_staff_name,
+                    COALESCE(rd.handled_by_staff_id, c.reviewed_by_staff_id, 0) AS handled_by_staff_id,
+                    COALESCE(s.full_name, s_rev.full_name, 'Custody Officer') AS handled_by_staff_name,
                     rd.delivery_notes,
                     COALESCE(rd.created_at, c.reviewed_at, c.submitted_at) AS created_at,
                     rd.completed_at
@@ -636,6 +662,7 @@ public class StaffRepository {
                 JOIN app.item i ON i.item_id = f.item_id
                 LEFT JOIN app.return_delivery rd ON rd.claim_id = c.claim_id
                 LEFT JOIN app.staff s ON s.staff_id = rd.handled_by_staff_id
+                LEFT JOIN app.staff s_rev ON s_rev.staff_id = c.reviewed_by_staff_id
                 WHERE c.claim_status = 'approved'
                 """);
 
@@ -700,7 +727,7 @@ public class StaffRepository {
             jdbcTemplate.update(updateSql, returnMethod, returnStatus, staffId, notes, completedAt, claimId);
         }
 
-        // If completed, release storage slot and update found_item status to 'returned'
+        // If completed, release storage slot, mark found_item 'returned', and resolve passenger lost_report
         if ("completed".equalsIgnoreCase(returnStatus)) {
             String releaseStorageSql = """
                     UPDATE app.storage_assignment
@@ -727,6 +754,19 @@ public class StaffRepository {
                     )
                     """;
             jdbcTemplate.update(updateFoundSql, claimId);
+
+            String updateLostSql = """
+                    UPDATE app.lost_report
+                    SET report_status = 'resolved',
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE lost_report_id = (
+                        SELECT m.lost_report_id
+                        FROM app.claim c
+                        JOIN app.item_match m ON m.match_id = c.match_id
+                        WHERE c.claim_id = ?
+                    )
+                    """;
+            jdbcTemplate.update(updateLostSql, claimId);
         }
     }
 

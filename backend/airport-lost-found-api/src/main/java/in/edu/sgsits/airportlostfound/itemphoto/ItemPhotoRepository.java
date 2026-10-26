@@ -2,6 +2,7 @@ package in.edu.sgsits.airportlostfound.itemphoto;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -12,6 +13,12 @@ public class ItemPhotoRepository {
 
     public ItemPhotoRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
+    }
+
+    public Optional<Long> findItemIdByFoundItemId(long foundItemId) {
+        String sql = "SELECT item_id FROM app.found_item WHERE found_item_id = ?";
+        List<Long> ids = jdbcTemplate.query(sql, (rs, rowNum) -> rs.getLong("item_id"), foundItemId);
+        return ids.stream().findFirst();
     }
 
     public int getNextPhotoNumber(long itemId) {

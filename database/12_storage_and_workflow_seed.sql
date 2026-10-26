@@ -1,5 +1,20 @@
 BEGIN;
 
+-- 0. Self-healing schema migrations for domain alignment
+ALTER TABLE app.found_item ADD COLUMN IF NOT EXISTS stored_at TIMESTAMPTZ;
+ALTER TABLE app.found_item ADD COLUMN IF NOT EXISTS storage_id BIGINT;
+ALTER TABLE app.found_item ADD COLUMN IF NOT EXISTS slot_number INT;
+ALTER TABLE app.item_photo ADD COLUMN IF NOT EXISTS found_item_id BIGINT;
+ALTER TABLE app.item_photo ADD COLUMN IF NOT EXISTS photo_type VARCHAR(50) DEFAULT 'overview';
+ALTER TABLE app.claim ADD COLUMN IF NOT EXISTS verifying_staff_id BIGINT;
+ALTER TABLE app.claim ADD COLUMN IF NOT EXISTS approving_staff_id BIGINT;
+ALTER TABLE app.claim ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
+ALTER TABLE app.claim ADD COLUMN IF NOT EXISTS verification_status VARCHAR(25);
+ALTER TABLE app.return_delivery ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE app.return_delivery ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ;
+ALTER TABLE app.storage_assignment ADD COLUMN IF NOT EXISTS released_at TIMESTAMPTZ;
+ALTER TABLE app.storage_slot ADD COLUMN IF NOT EXISTS slot_status VARCHAR(20) DEFAULT 'available';
+
 -- 1. Ensure airport locations exist for storage cabinets
 INSERT INTO app.airport_location (
     airport_id,
