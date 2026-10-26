@@ -3,6 +3,7 @@ package in.edu.sgsits.airportlostfound.staff;
 import java.util.List;
 import java.util.Locale;
 
+import in.edu.sgsits.airportlostfound.match.MatchRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -15,10 +16,12 @@ public class StaffService {
 
     private final StaffRepository staffRepository;
     private final PasswordEncoder passwordEncoder;
+    private final MatchRepository matchRepository;
 
-    public StaffService(StaffRepository staffRepository, PasswordEncoder passwordEncoder) {
+    public StaffService(StaffRepository staffRepository, PasswordEncoder passwordEncoder, MatchRepository matchRepository) {
         this.staffRepository = staffRepository;
         this.passwordEncoder = passwordEncoder;
+        this.matchRepository = matchRepository;
     }
 
     public StaffProfile getStaffByEmail(String email) {
@@ -78,11 +81,14 @@ public class StaffService {
                 "{\"itemName\": \"" + request.itemName().replace("\"", "\\\"") + "\", \"reportedBy\": \"" + currentStaff.fullName() + "\"}"
         );
 
+        matchRepository.autoCorrelateMatches();
+
         return foundItemId;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<StaffClaimItem> getClaims(String status) {
+        matchRepository.autoCorrelateMatches();
         return staffRepository.findAllClaims(status);
     }
 

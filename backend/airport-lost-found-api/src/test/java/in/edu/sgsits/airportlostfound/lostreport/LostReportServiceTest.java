@@ -2,6 +2,7 @@ package in.edu.sgsits.airportlostfound.lostreport;
 
 import java.util.List;
 
+import in.edu.sgsits.airportlostfound.match.MatchRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -22,6 +23,9 @@ class LostReportServiceTest {
 
     @Mock
     private LostReportRepository lostReportRepository;
+
+    @Mock
+    private MatchRepository matchRepository;
 
     @InjectMocks
     private LostReportService lostReportService;

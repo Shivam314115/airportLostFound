@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
+import in.edu.sgsits.airportlostfound.match.MatchRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,9 +21,11 @@ public class LostReportService {
     );
 
     private final LostReportRepository lostReportRepository;
+    private final MatchRepository matchRepository;
 
-    public LostReportService(LostReportRepository lostReportRepository) {
+    public LostReportService(LostReportRepository lostReportRepository, MatchRepository matchRepository) {
         this.lostReportRepository = lostReportRepository;
+        this.matchRepository = matchRepository;
     }
 
     public List<LostReportOverview> getLostReports(
@@ -111,6 +114,8 @@ public class LostReportService {
                 }
             }
         }
+
+        matchRepository.autoCorrelateMatches();
 
         return lostReportRepository.findById(lostReportId)
                 .orElseThrow(() -> new IllegalStateException(

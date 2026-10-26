@@ -626,7 +626,7 @@ public class StaffRepository {
                     rd.handled_by_staff_id,
                     s.full_name AS handled_by_staff_name,
                     rd.delivery_notes,
-                    COALESCE(rd.created_at, c.reviewed_at, c.created_at) AS created_at,
+                    COALESCE(rd.created_at, c.reviewed_at, c.submitted_at) AS created_at,
                     rd.completed_at
                 FROM app.claim c
                 JOIN app.item_match m ON m.match_id = c.match_id

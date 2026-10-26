@@ -170,6 +170,9 @@ function StatusBadge({ status }: { status: string }) {
   if (normalized === 'open') {
     badgeClass = 'status-open';
     label = 'Open Report';
+  } else if (normalized === 'candidate_found') {
+    badgeClass = 'status-candidate';
+    label = 'Candidate Found';
   } else if (normalized === 'resolved' || normalized === 'verified') {
     badgeClass = 'status-resolved';
     label = normalized === 'verified' ? 'Verified Match' : 'Resolved';
