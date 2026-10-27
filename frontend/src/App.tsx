@@ -7,7 +7,6 @@ import {
   ChevronDown,
   CircleAlert,
   FileText,
-  KeyRound,
   Layers,
   LogOut,
   Luggage,
@@ -463,14 +462,14 @@ export default function App() {
               className={`nav-link${activeView === 'discover' ? ' nav-link-active' : ''}`}
               onClick={() => navigate('discover')}
             >
-              Discover
+              Search Items
             </button>
             {currentUser?.userType === 'staff' ? (
               <button
                 className={`nav-link${activeView === 'staff' ? ' nav-link-active' : ''}`}
                 onClick={() => navigate('staff')}
               >
-                Staff Workspace
+                Staff Dashboard
                 <span className="staff-role-badge">{currentUser.staffRoleTitle}</span>
               </button>
             ) : (
@@ -479,13 +478,13 @@ export default function App() {
                   className={`nav-link${activeView === 'my-reports' ? ' nav-link-active' : ''}`}
                   onClick={() => navigate('my-reports')}
                 >
-                  My reports {currentUser && myReports.length > 0 && `(${myReports.length})`}
+                  My Reports {currentUser && myReports.length > 0 && `(${myReports.length})`}
                 </button>
                 <button
                   className={`nav-link${activeView === 'matches' ? ' nav-link-active' : ''}`}
                   onClick={() => navigate('matches')}
                 >
-                  Possible matches {currentUser && matches.length > 0 && `(${matches.length})`}
+                  Matches {currentUser && matches.length > 0 && `(${matches.length})`}
                 </button>
               </>
             )}
@@ -531,7 +530,7 @@ export default function App() {
             {currentUser?.userType !== 'staff' && (
               <button className="button button-primary header-report" onClick={handleOpenReport}>
                 <Plus size={17} />
-                <span>Report an item</span>
+                <span>Report Lost Item</span>
               </button>
             )}
           </div>
@@ -549,21 +548,20 @@ export default function App() {
 
       <main id="main-content">
         {/* ===================================================================
-            VIEW 1: DISCOVER / LIVE AIRPORT RECOVERY REGISTER
+            VIEW 1: SEARCH & BROWSE ITEMS
            =================================================================== */}
         {activeView === 'discover' && (
           <>
             <section className="hero-section page-wrap">
               <div className="hero-copy">
                 <p className="eyebrow">
-                  <span className="eyebrow-rule" /> AIRPORT LOST PROPERTY <span className="eyebrow-separator">/</span> AIRPORT LOST &amp; FOUND
+                  <span className="eyebrow-rule" /> AIRPORT LOST &amp; FOUND
                 </p>
                 <h1>
-                  Lost something<br />along the way<span className="hero-period">?</span>
+                  Lost something<br />at the airport<span className="hero-period">?</span>
                 </h1>
                 <p className="hero-intro">
-                  Directly integrated with the airport custody register. Browse logged property reports,
-                  verify candidate matches, and reclaim items held in secure terminal lockers.
+                  Search through found items or submit a report to quickly get your lost belongings back.
                 </p>
                 <div className="hero-actions">
                   <button
@@ -571,18 +569,17 @@ export default function App() {
                     onClick={() => document.getElementById('item-search')?.focus()}
                   >
                     <Search size={16} />
-                    <span>Search lost property</span>
+                    <span>Search found items</span>
                     <ArrowRight size={17} />
                   </button>
                   <button className="text-link" onClick={handleOpenReport}>
-                    <span>Report a missing item</span>
+                    <span>Report a lost item</span>
                     <ArrowUpRight size={16} />
                   </button>
                 </div>
               </div>
 
-              <aside className="hero-3d-stage" aria-label="AirportLostandFound 3D Airplane Fleet Stage">
-                {/* Visual Waypoint Orbit Graphics matching design spec */}
+              <aside className="hero-3d-stage" aria-label="Airport 3D Airplane">
                 <svg className="hero-orbit-svg" viewBox="0 0 740 460" fill="none" aria-hidden="true">
                   <ellipse
                     cx="375"
@@ -594,29 +591,20 @@ export default function App() {
                     strokeDasharray="6 8"
                     transform="rotate(-9 375 235)"
                   />
-                  {/* Waypoint 1: Left */}
+                  {/* Waypoint 1 */}
                   <g transform="translate(62, 230)">
                     <circle cx="0" cy="0" r="14" fill="#087f89" />
                     <circle cx="0" cy="0" r="5" fill="#ffffff" />
                   </g>
-                  {/* Waypoint 2: Top Center-Left */}
+                  {/* Waypoint 2 */}
                   <g transform="translate(255, 110)">
                     <circle cx="0" cy="0" r="14" fill="#087f89" />
                     <circle cx="0" cy="0" r="5" fill="#ffffff" />
                   </g>
-                  {/* Waypoint 3: Right */}
+                  {/* Waypoint 3 */}
                   <g transform="translate(685, 175)">
                     <circle cx="0" cy="0" r="14" fill="#087f89" />
                     <circle cx="0" cy="0" r="5" fill="#ffffff" />
-                  </g>
-                  {/* Tiny plane icon on flight orbit */}
-                  <g transform="translate(450, 95) rotate(-15) scale(0.7)">
-                    <path
-                      d="M0 -14 L3 -2 L12 4 L12 6 L3 4 L3 11 L7 14 L7 16 L0 15 L-7 16 L-7 14 L-3 11 L-3 4 L-12 6 L-12 4 L-3 -2 Z"
-                      fill="#ffffff"
-                      stroke="#087f89"
-                      strokeWidth="1"
-                    />
                   </g>
                 </svg>
 
@@ -629,13 +617,13 @@ export default function App() {
             <section className="discovery-section page-wrap" aria-labelledby="discovery-title">
               <div className="section-intro">
                 <div>
-                  <p className="eyebrow"><span className="eyebrow-rule" /> RECOVERY REGISTER</p>
-                  <h2 id="discovery-title">Search lost property<span className="heading-period">.</span></h2>
-                  <p className="section-description">Filter by item name, flight itinerary, checkpoint location, or category.</p>
+                  <p className="eyebrow"><span className="eyebrow-rule" /> ITEMS DATABASE</p>
+                  <h2 id="discovery-title">Search items<span className="heading-period">.</span></h2>
+                  <p className="section-description">Filter by item name, flight, or airport location.</p>
                 </div>
                 <span className="data-state">
                   <span className="data-state-dot" style={{ background: '#1b8a5b' }} />
-                  {reports.length} items registered
+                  {reports.length} items logged
                 </span>
               </div>
 
@@ -648,7 +636,7 @@ export default function App() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search by item name, brand, flight, or location..."
-                    aria-label="Search lost property"
+                    aria-label="Search items"
                   />
                   {searchQuery && (
                     <button type="button" className="clear-search" onClick={() => setSearchQuery('')} aria-label="Clear search">
@@ -695,8 +683,8 @@ export default function App() {
 
               <div className="results-heading">
                 <div>
-                  <h3>Current Airport Reports</h3>
-                  <p>Live register across terminal custody desks</p>
+                  <h3>Recent Items</h3>
+                  <p>Items reported by passengers and staff</p>
                 </div>
                 <span className="records-count">
                   <strong>{filteredReports.length}</strong> {filteredReports.length === 1 ? 'record' : 'records'}
@@ -805,25 +793,25 @@ export default function App() {
           <section className="workspace page-wrap">
             <div className="workspace-heading">
               <div>
-                <p className="eyebrow"><span className="eyebrow-rule" /> PASSENGER AREA</p>
+                <p className="eyebrow"><span className="eyebrow-rule" /> MY REPORTS</p>
                 <h1>My reports<span className="heading-period">.</span></h1>
                 <p className="section-description">
                   {currentUser
-                    ? `Review and track the lost property reports lodged under ${currentUser.fullName}.`
-                    : 'A single place to review the reports attached to your authenticated passenger account.'}
+                    ? `Track the status of items reported under ${currentUser.fullName}.`
+                    : 'Track the status of your reported items.'}
                 </p>
               </div>
               <button className="button button-primary" onClick={handleOpenReport}>
-                <Plus size={16} /> Report an item
+                <Plus size={16} /> Report Lost Item
               </button>
             </div>
 
             {!currentUser ? (
               <EmptyState
                 icon={FileText}
-                eyebrow="AUTHENTICATION REQUIRED"
+                eyebrow="SIGN IN REQUIRED"
                 title="Sign in to view your reports."
-                description="Sign in or register to track custody status, receive match notifications, and verify ownership for items you reported."
+                description="Sign in or create an account to view your reports and track matching items."
                 action={
                   <button
                     className="button button-primary"
@@ -892,7 +880,7 @@ export default function App() {
                     <div className="card-footer">
                       <span>Report #{item.lostReportId}</span>
                       <span>
-                        Lodged: {new Date(item.reportedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                        Reported: {new Date(item.reportedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                       </span>
                     </div>
                   </article>
@@ -901,12 +889,12 @@ export default function App() {
             ) : (
               <EmptyState
                 icon={FileText}
-                eyebrow="NO REPORTS FILED"
+                eyebrow="NO REPORTS YET"
                 title="You have no active reports."
-                description="You haven't filed any missing item reports yet. If you left something at the airport or onboard your flight, prepare a report to initiate custody tracing."
+                description="You haven't reported any lost items yet. If you left something behind, submit a report to get started."
                 action={
                   <button className="button button-primary" onClick={handleOpenReport}>
-                    <Plus size={16} /> Lodge a missing item report
+                    <Plus size={16} /> Report a lost item
                   </button>
                 }
               />
@@ -914,24 +902,24 @@ export default function App() {
 
             <div className="protocol-grid">
               <div className="protocol-card">
-                <span className="protocol-step-num">STAGE 01</span>
-                <h4>Report Intake</h4>
-                <p>Item characteristics, timestamps, terminal checkpoints, and flight itineraries are logged into the central register.</p>
+                <span className="protocol-step-num">STEP 01</span>
+                <h4>Report Lost Item</h4>
+                <p>Submit details and photos of what you lost, including flight or location.</p>
               </div>
               <div className="protocol-card">
-                <span className="protocol-step-num">STAGE 02</span>
-                <h4>Automated Correlation</h4>
-                <p>Intake records are cross-referenced with custody vault inventories across all airport terminals.</p>
+                <span className="protocol-step-num">STEP 02</span>
+                <h4>Automatic Match</h4>
+                <p>The system automatically checks for matching items reported by airport staff.</p>
               </div>
               <div className="protocol-card">
-                <span className="protocol-step-num">STAGE 03</span>
-                <h4>Secure Custody</h4>
-                <p>Unclaimed belongings are transferred to climate-controlled airport custody lockers with audit logging.</p>
+                <span className="protocol-step-num">STEP 03</span>
+                <h4>Safe Storage</h4>
+                <p>Found items are safely secured in airport storage lockers.</p>
               </div>
               <div className="protocol-card">
-                <span className="protocol-step-num">STAGE 04</span>
-                <h4>Verification &amp; Handover</h4>
-                <p>Passengers verify ownership with government ID and flight credentials at the Terminal Customer Service desk.</p>
+                <span className="protocol-step-num">STEP 04</span>
+                <h4>Verify &amp; Return</h4>
+                <p>Verify your identity at the airport counter to collect your item.</p>
               </div>
             </div>
           </section>
@@ -944,10 +932,10 @@ export default function App() {
           <section className="workspace page-wrap">
             <div className="workspace-heading">
               <div>
-                <p className="eyebrow"><span className="eyebrow-rule" /> REVIEW &amp; RECONNECT</p>
-                <h1>Possible matches<span className="heading-period">.</span></h1>
+                <p className="eyebrow"><span className="eyebrow-rule" /> ITEM MATCHES</p>
+                <h1>Matches<span className="heading-period">.</span></h1>
                 <p className="section-description">
-                  Automated correlation between reported passenger belongings and stored terminal property.
+                  Items found by airport staff that match your lost reports.
                 </p>
               </div>
             </div>
@@ -955,9 +943,9 @@ export default function App() {
             {!currentUser ? (
               <EmptyState
                 icon={CircleAlert}
-                eyebrow="AUTHENTICATION REQUIRED"
+                eyebrow="SIGN IN REQUIRED"
                 title="Sign in to review matches."
-                description="Airport match candidate records are linked to verified passenger identities to protect property custody."
+                description="Sign in to view items matching your lost reports."
                 action={
                   <button
                     className="button button-primary"
@@ -1087,42 +1075,39 @@ export default function App() {
             <div className="footer-brand-col">
               <Brand onClick={() => navigate('discover')} />
               <p className="footer-desc">
-                Directly connected to the airport custody register. Browse logged property reports,
-                verify candidate matches, and reclaim items held in secure terminal lockers.
+                Airport service connecting passenger lost reports with found property custody.
               </p>
             </div>
 
             <div className="footer-nav-col">
-              <span className="footer-col-title">Passenger Portal</span>
+              <span className="footer-col-title">Passenger</span>
               <ul className="footer-links">
-                <li><button type="button" onClick={() => navigate('discover')}>Search Recovery Register</button></li>
-                <li><button type="button" onClick={() => navigate('my-reports')}>My Reported Items</button></li>
-                <li><button type="button" onClick={() => navigate('matches')}>Candidate Matches</button></li>
-                <li><button type="button" onClick={handleOpenReport}>+ Report a Missing Item</button></li>
+                <li><button type="button" onClick={() => navigate('discover')}>Search Items</button></li>
+                <li><button type="button" onClick={() => navigate('my-reports')}>My Reports</button></li>
+                <li><button type="button" onClick={() => navigate('matches')}>Matches</button></li>
+                <li><button type="button" onClick={handleOpenReport}>+ Report Lost Item</button></li>
               </ul>
             </div>
 
             <div className="footer-nav-col">
-              <span className="footer-col-title">Custody Desks</span>
+              <span className="footer-col-title">Airport Desks</span>
               <ul className="footer-links">
-                <li><span>Indore Central (IDR) &middot; Terminal 1</span></li>
-                <li><span>Mumbai CSMI (BOM) &middot; Terminal 2</span></li>
-                <li><span>Secure Storage &amp; 24/7 Handover</span></li>
+                <li><span>Indore (IDR) &middot; Terminal 1</span></li>
+                <li><span>Mumbai (BOM) &middot; Terminal 2</span></li>
                 <li>
                   <button type="button" className="footer-help-btn" onClick={() => setHelpOpen(true)}>
-                    <BadgeHelp size={14} /> Service Overview
+                    <BadgeHelp size={14} /> How it Works
                   </button>
                 </li>
               </ul>
             </div>
 
             <div className="footer-nav-col">
-              <span className="footer-col-title">Operations &amp; Staff</span>
+              <span className="footer-col-title">Staff Portal</span>
               <ul className="footer-links">
-                <li><button type="button" onClick={() => navigate('staff')}>Staff Workspace</button></li>
-                <li><span>Intake, Claims &amp; Dispatch</span></li>
-                <li><span>Restricted Officer Access</span></li>
-                <li><span>Audit Log Retention</span></li>
+                <li><button type="button" onClick={() => navigate('staff')}>Staff Dashboard</button></li>
+                <li><span>Intake &amp; Verification</span></li>
+                <li><span>Storage Lockers</span></li>
               </ul>
             </div>
           </div>
@@ -1131,7 +1116,7 @@ export default function App() {
 
           <div className="footer-bottom-bar">
             <div className="footer-copyright">
-              &copy; {new Date().getFullYear()} <strong>AirportLostandFound</strong> &middot; Central Airport Lost Property Recovery System
+              &copy; {new Date().getFullYear()} <strong>Airport Lost &amp; Found</strong>
             </div>
           </div>
         </div>
@@ -1194,7 +1179,7 @@ export default function App() {
                   setLoginForm({ email: '', password: '' });
                 }}
               >
-                Passenger Login
+                Passenger
               </button>
               <button
                 type="button"
@@ -1205,102 +1190,9 @@ export default function App() {
                   setLoginForm({ email: '', password: '' });
                 }}
               >
-                Airport Staff (RBAC)
+                Airport Staff
               </button>
             </div>
-
-            {loginRoleTab === 'staff' && (
-              <div style={{ marginBottom: '16px' }}>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>
-                  Quick-Select Staff Subrole (Auto-fills Credentials):
-                </span>
-                <div className="staff-presets-grid">
-                  <button
-                    type="button"
-                    className="staff-preset-card"
-                    onClick={() => setLoginForm({ email: 'aditi.agent@airport.test', password: 'shivam123' })}
-                  >
-                    <div>
-                      <strong>Airport Lost & Found Agent</strong>
-                      <small>agent@airport.test · Intake & Searches</small>
-                    </div>
-                    <span className="staff-preset-badge">Lost & Found Agent</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="staff-preset-card"
-                    onClick={() => setLoginForm({ email: 'vikram.claims@airport.test', password: 'shivam123' })}
-                  >
-                    <div>
-                      <strong>Claims Verification Officer</strong>
-                      <small>claims@airport.test · Claim Verification</small>
-                    </div>
-                    <span className="staff-preset-badge">Claims Officer</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="staff-preset-card"
-                    onClick={() => setLoginForm({ email: 'pooja.inventory@airport.test', password: 'shivam123' })}
-                  >
-                    <div>
-                      <strong>Inventory & Storage Officer</strong>
-                      <small>inventory@airport.test · Physical Vault</small>
-                    </div>
-                    <span className="staff-preset-badge">Inventory Officer</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="staff-preset-card"
-                    onClick={() => setLoginForm({ email: 'rahul.dispatch@airport.test', password: 'shivam123' })}
-                  >
-                    <div>
-                      <strong>Return & Dispatch Officer</strong>
-                      <small>dispatch@airport.test · Return & Courier</small>
-                    </div>
-                    <span className="staff-preset-badge">Dispatch Officer</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="staff-preset-card"
-                    onClick={() => setLoginForm({ email: 'sunita.supervisor@airport.test', password: 'shivam123' })}
-                  >
-                    <div>
-                      <strong>Lost Property Supervisor</strong>
-                      <small>supervisor@airport.test · Oversight & Audits</small>
-                    </div>
-                    <span className="staff-preset-badge">Supervisor</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="staff-preset-card"
-                    onClick={() => setLoginForm({ email: 'karan.security@airport.test', password: 'shivam123' })}
-                  >
-                    <div>
-                      <strong>Airport Security Officer</strong>
-                      <small>security@airport.test · Restricted Intake</small>
-                    </div>
-                    <span className="staff-preset-badge">Ground Staff</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="staff-preset-card"
-                    onClick={() => setLoginForm({ email: 'admin@airport.test', password: 'shivam123' })}
-                  >
-                    <div>
-                      <strong>Airport System Administrator</strong>
-                      <small>admin@airport.test · Staff Accounts & System</small>
-                    </div>
-                    <span className="staff-preset-badge">System Admin</span>
-                  </button>
-                </div>
-              </div>
-            )}
 
             <form className="dialog-form" onSubmit={handleLoginSubmit}>
               <Field label="Email address" required>
@@ -1323,18 +1215,8 @@ export default function App() {
                 />
               </Field>
 
-              {loginRoleTab === 'passenger' && (
-                <button
-                  type="button"
-                  className="preset-login-btn"
-                  onClick={() => setLoginForm({ email: 'riya.active@example.test', password: 'Password123!' })}
-                >
-                  <KeyRound size={14} /> Quick-fill passenger test credentials (riya.active@example.test)
-                </button>
-              )}
-
               <button type="submit" className="button button-primary button-full" disabled={isSubmitting}>
-                {isSubmitting ? 'Signing in...' : (loginRoleTab === 'staff' ? 'Sign in to Staff Workspace' : 'Sign in as Passenger')} <ArrowRight size={16} />
+                {isSubmitting ? 'Signing in...' : (loginRoleTab === 'staff' ? 'Sign in as Staff' : 'Sign in')} <ArrowRight size={16} />
               </button>
             </form>
           </div>
@@ -1486,7 +1368,7 @@ export default function App() {
 
           <div className="form-section-label form-section-spaced">
             <span>02</span>
-            <strong>THE JOURNEY &amp; LOCATION</strong>
+            <strong>WHEN &amp; WHERE WAS IT LOST</strong>
           </div>
 
           <div className="form-grid-two">
@@ -1499,7 +1381,7 @@ export default function App() {
               />
             </Field>
 
-            <Field label="Last seen airport location">
+            <Field label="Airport location">
               <select
                 value={reportForm.locationId}
                 onChange={(e) => setReportForm((prev) => ({ ...prev, locationId: Number(e.target.value) }))}
@@ -1514,7 +1396,7 @@ export default function App() {
           </div>
 
           <div className="form-grid-two">
-            <Field label="Associated flight itinerary">
+            <Field label="Flight (optional)">
               <select
                 value={reportForm.flightId}
                 onChange={(e) => setReportForm((prev) => ({ ...prev, flightId: e.target.value ? Number(e.target.value) : '' }))}
@@ -1528,23 +1410,23 @@ export default function App() {
               </select>
             </Field>
 
-            <Field label="Estimated value (INR)" hint="Optional numeric valuation">
+            <Field label="Estimated value (INR, optional)">
               <input
                 type="number"
                 min="0"
                 step="0.01"
                 value={reportForm.estimatedValue}
                 onChange={(e) => setReportForm((prev) => ({ ...prev, estimatedValue: e.target.value }))}
-                placeholder="e.g. 50000"
+                placeholder="e.g. 5000"
               />
             </Field>
           </div>
 
-          <Field label="Additional operational details">
+          <Field label="Additional notes (optional)">
             <textarea
               value={reportForm.additionalDetails}
               onChange={(e) => setReportForm((prev) => ({ ...prev, additionalDetails: e.target.value }))}
-              placeholder="Any other helpful travel context (seat number, gate zone, transit desk)"
+              placeholder="Seat number, gate zone, or any identifying marks"
               rows={2}
               maxLength={4000}
             />
@@ -1552,14 +1434,14 @@ export default function App() {
 
           <div className="form-section-label form-section-spaced">
             <span>03</span>
-            <strong>PHOTOGRAPHS &amp; PROOF OF OWNERSHIP</strong>
+            <strong>PHOTOS (OPTIONAL)</strong>
           </div>
 
           <ImageUploadWidget
             photos={reportForm.photos}
             onChange={(photos) => setReportForm((prev) => ({ ...prev, photos }))}
             maxPhotos={4}
-            hint="Upload photographs of the item, purchase receipts, serial numbers, or baggage tags."
+            hint="Upload photos of the item or purchase receipts if available."
           />
 
           <div className="dialog-actions">
@@ -1576,12 +1458,12 @@ export default function App() {
               type="submit"
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Lodging report...' : 'Submit to Airport Database'} <ArrowRight size={16} />
+              {isSubmitting ? 'Submitting...' : 'Submit Report'} <ArrowRight size={16} />
             </button>
           </div>
 
           <p className="dialog-footnote">
-            <ShieldCheck size={15} /> Authenticated under {currentUser?.fullName}. Logged with immutable audit history.
+            <ShieldCheck size={15} /> Submitting as {currentUser?.fullName}.
           </p>
         </form>
       </Dialog>
@@ -1592,39 +1474,46 @@ export default function App() {
       <Dialog
         open={helpOpen}
         onOpenChange={setHelpOpen}
-        title="AirportLostandFound Management System"
-        description="Centralized property recovery service connecting passenger reports with airport custody registers."
+        title="How Lost & Found Works"
+        description="A simple 4-step process to report and reclaim lost items."
         className="help-dialog"
       >
         <div className="help-content">
           <div className="notice notice-info">
             <ShieldCheck size={18} />
             <p>
-              <strong>Terminal Custody Network</strong>
+              <strong>Airport Custody Network</strong>
               <span>
-                Directly synchronized across airport terminal custody desks, baggage sorting facilities, and security checkpoints.
+                Connected across security checkpoints, boarding gates, and lost property desks.
               </span>
             </p>
           </div>
           <div className="help-row">
             <span className="help-row-icon"><Search size={18} /></span>
             <div>
-              <strong>Recovery Register</strong>
-              <p>Live inventory of reported passenger belongings, categorized and cross-referenced with terminal lockers.</p>
+              <strong>1. Report Lost Item</strong>
+              <p>Submit details and photos of what you lost.</p>
             </div>
           </div>
           <div className="help-row">
             <span className="help-row-icon"><Layers size={18} /></span>
             <div>
-              <strong>Matching Engine</strong>
-              <p>Automated verification scoring between lost reports and custody items to facilitate swift handovers.</p>
+              <strong>2. Automatic Match</strong>
+              <p>System alerts you when staff find a matching item.</p>
             </div>
           </div>
           <div className="help-row">
             <span className="help-row-icon"><MapPin size={18} /></span>
             <div>
-              <strong>Custody Desk Handover</strong>
-              <p>Handover desks are staffed 24/7 at Terminal 1 (Indore) and Terminal 2 (Mumbai) for identity verification.</p>
+              <strong>3. Verify Ownership</strong>
+              <p>Verify your identity with your ID or boarding pass.</p>
+            </div>
+          </div>
+          <div className="help-row">
+            <span className="help-row-icon"><CheckCircle2 size={18} /></span>
+            <div>
+              <strong>4. Collect Item</strong>
+              <p>Pick up your item from the airport counter or request delivery.</p>
             </div>
           </div>
           <button className="button button-primary button-full" onClick={() => setHelpOpen(false)}>

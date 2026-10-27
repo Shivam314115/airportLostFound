@@ -614,17 +614,19 @@ button:disabled {
   flex: 0 0 auto;
 }
 
-/* 3D Airplane Container in Hero Right (680–760px wide, centered vertically with text) */
+/* 3D Airplane Container in Hero Right (Compact, centered vertically with text, never overflows) */
 .hero-3d-stage {
-  flex: 1 1 720px;
+  flex: 0 1 480px;
   width: 100%;
-  max-width: 760px;
-  height: 480px;
-  min-height: 420px;
+  max-width: 480px;
+  height: 350px;
+  min-height: 280px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
+  overflow: hidden;
+  contain: paint;
 }
 
 .hero-orbit-svg {
@@ -1874,9 +1876,10 @@ button:disabled {
   }
   .hero-3d-stage {
     width: 100%;
-    max-width: 680px;
-    height: 400px;
-    min-height: 360px;
+    max-width: 440px;
+    height: 300px;
+    min-height: 260px;
+    margin: 0 auto;
   }
   .hero-copy h1 {
     font-size: clamp(42px, 6vw, 56px);
@@ -1997,9 +2000,12 @@ button:disabled {
   }
 
   .hero-3d-stage {
-    height: clamp(200px, 42vw, 270px);
-    min-height: 200px;
-    max-height: 270px;
+    width: 100%;
+    max-width: 320px;
+    height: 220px;
+    min-height: 180px;
+    max-height: 240px;
+    margin: 0 auto;
   }
 
   .hero-copy h1 {

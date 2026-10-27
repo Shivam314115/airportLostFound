@@ -64,7 +64,6 @@ export default function StaffWorkspace({
 
   // Subrole identification helpers
   const isGroundStaff = staffRole === 'ground_staff' || staffRole === 'security_officer';
-  const isLostFoundAgent = staffRole === 'lost_found_agent' || staffRole === 'lost_found_officer';
 
   // Permission checkers
   const hasIntakeAccess = authorities.includes('ROLE_STAFF_INTAKE') || authorities.includes('ROLE_SYSTEM_ADMIN');
@@ -263,7 +262,7 @@ export default function StaffWorkspace({
       setStats(s);
       setAuditLogs(a);
     } catch (err) {
-      showToast('error', err instanceof Error ? err.message : 'Failed to load supervisor telemetry.');
+      showToast('error', err instanceof Error ? err.message : 'Failed to load statistics.');
     } finally {
       setLoading(false);
     }
@@ -460,28 +459,18 @@ export default function StaffWorkspace({
         <div className="staff-header-left">
           <div className="staff-role-pill">
             {isGroundStaff ? <ShieldCheck size={14} /> : <Luggage size={14} />}
-            <span>{currentUser.staffRoleTitle || 'Airport Staff'}</span>
+            <span>{currentUser.staffRoleTitle || 'Staff Member'}</span>
           </div>
-          <h2>
-            {isGroundStaff
-              ? 'Airside Patrol & Custody Intake Console'
-              : isLostFoundAgent
-              ? 'Terminal Lost & Found Custody Desk'
-              : 'Airport Custody & Operational Register'}
-          </h2>
+          <h2>Airport Staff Portal</h2>
           <p className="staff-header-subtitle">
-            {isGroundStaff
-              ? 'Terminal airside discovery console for logging unattended items across security checkpoints, gates, and aircraft cabins to establish an immediate chain of custody.'
-              : isLostFoundAgent
-              ? 'Landside custody counter console for item cataloging, physical condition grading, photo evidence documentation, and cross-terminal registry searches.'
-              : 'Restricted role-based terminal console for property intake, biometric/ID verification, physical vault custody, and property dispatch.'}
+            Log found items, review passenger claims, and manage storage lockers.
           </p>
         </div>
 
         <div className="staff-header-right">
           <div className="staff-actor-card">
             <span className="staff-actor-badge">
-              {isGroundStaff ? 'Airside Clearance: Active' : isLostFoundAgent ? 'Custody Desk: Counter 1' : 'Active Duty'}
+              Active Duty
             </span>
             <strong>{currentUser.fullName}</strong>
             <small>{currentUser.email}</small>
@@ -505,7 +494,7 @@ export default function StaffWorkspace({
           disabled={!hasIntakeAccess}
         >
           {isGroundStaff ? <ShieldCheck size={16} /> : <Luggage size={16} />}
-          <span>{isGroundStaff ? 'Airside Patrol Intake' : isLostFoundAgent ? 'Custody Desk Register' : 'Intake Desk'}</span>
+          <span>Intake Desk</span>
           {!hasIntakeAccess && <Lock size={12} className="lock-icon" />}
         </button>
 
@@ -525,7 +514,7 @@ export default function StaffWorkspace({
           disabled={!hasInventoryAccess}
         >
           <Warehouse size={16} />
-          <span>Vault & Inventory</span>
+          <span>Storage Lockers</span>
           {!hasInventoryAccess && <Lock size={12} className="lock-icon" />}
         </button>
 
@@ -535,7 +524,7 @@ export default function StaffWorkspace({
           disabled={!hasDispatchAccess}
         >
           <Truck size={16} />
-          <span>Return & Dispatch</span>
+          <span>Returns</span>
           {!hasDispatchAccess && <Lock size={12} className="lock-icon" />}
         </button>
 
@@ -545,7 +534,7 @@ export default function StaffWorkspace({
           disabled={!hasSupervisorAccess}
         >
           <Activity size={16} />
-          <span>Supervisor Telemetry</span>
+          <span>Overview &amp; Stats</span>
           {!hasSupervisorAccess && <Lock size={12} className="lock-icon" />}
         </button>
 
@@ -567,55 +556,18 @@ export default function StaffWorkspace({
         <section className="staff-panel">
           <div className="staff-panel-header">
             <div>
-              <h3>
-                {isGroundStaff
-                  ? 'Airside Discovery & Checkpoint Intake'
-                  : isLostFoundAgent
-                  ? 'Terminal Custody Desk & Inventory Register'
-                  : 'Custody Intake & Item Register'}
-              </h3>
-              <p>
-                {isGroundStaff
-                  ? 'Log unattended baggage and property recovered during gate patrols, cabin sweeps, or security screening into the official chain of custody.'
-                  : isLostFoundAgent
-                  ? 'Catalog property handed over at the counter, record condition assessments, and search the active custody register for passenger inquiries.'
-                  : 'Log newly discovered baggage, electronics, and documents handed over by terminal staff or passengers.'}
-              </p>
+              <h3>Found Items</h3>
+              <p>Log and review items found across terminal checkpoints, gates, and aircraft.</p>
             </div>
             <div className="staff-panel-actions">
-              <button className="button button-outline" onClick={loadIntakeData} title="Refresh item register">
+              <button className="button button-outline" onClick={loadIntakeData} title="Refresh item list">
                 <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> Refresh
               </button>
               <button className="button button-primary" onClick={() => setNewFoundModalOpen(true)}>
-                <Plus size={16} /> {isGroundStaff ? 'Log Patrol Discovery' : 'Intake Recovered Item'}
+                <Plus size={16} /> Log Found Item
               </button>
             </div>
           </div>
-
-          {/* Role Operational Context Banner */}
-          {isGroundStaff && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'rgba(2, 132, 199, 0.08)', border: '1px solid rgba(2, 132, 199, 0.22)', borderRadius: 'var(--radius-xs)', marginBottom: '16px' }}>
-              <ShieldCheck size={22} style={{ color: '#0284c7', flexShrink: 0 }} />
-              <div>
-                <strong style={{ fontSize: '13px', color: '#0369a1', display: 'block' }}>Field Patrol Mode — Airside Checkpoint Discovery</strong>
-                <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
-                  You are authenticated with <strong>Airside Terminal Clearance</strong>. Log unattended items immediately upon recovery to record time and location proof. Custody handovers and vault storage assignments are completed at the landside desk.
-                </span>
-              </div>
-            </div>
-          )}
-
-          {isLostFoundAgent && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'rgba(8, 127, 137, 0.08)', border: '1px solid rgba(8, 127, 137, 0.22)', borderRadius: 'var(--radius-xs)', marginBottom: '16px' }}>
-              <Luggage size={22} style={{ color: 'var(--teal)', flexShrink: 0 }} />
-              <div>
-                <strong style={{ fontSize: '13px', color: 'var(--teal)', display: 'block' }}>Custody Counter Mode — Terminal 1 & 2 Intake Specialist</strong>
-                <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
-                  You are authenticated as <strong>Lost & Found Agent</strong> stationed at the Landside Custody Counter. You have full authority to catalog condition assessments, upload photo evidence, and search cross-terminal inventory for walk-in passengers.
-                </span>
-              </div>
-            </div>
-          )}
 
           {/* Search & Filters */}
           <div className="staff-search-row">
@@ -854,14 +806,14 @@ export default function StaffWorkspace({
       )}
 
       {/* =====================================================================
-          TAB 3: VAULT & INVENTORY (Inventory Storage Officer, Supervisor, Admin)
+          TAB 3: STORAGE LOCKERS (Inventory Storage Officer, Supervisor, Admin)
          ===================================================================== */}
       {activeTab === 'inventory' && (
         <section className="staff-panel">
           <div className="staff-panel-header">
             <div>
-              <h3>Secure Vault & Locker Inventory</h3>
-              <p>Manage physical storage locations, track locker slot occupancy, and assign newly processed items.</p>
+              <h3>Storage Lockers</h3>
+              <p>Manage physical storage locations and assign items to locker slots.</p>
             </div>
             <div className="staff-panel-actions">
               <button className="button button-outline" onClick={loadInventoryData}>
@@ -876,12 +828,12 @@ export default function StaffWorkspace({
           {storageLocations.length === 0 ? (
             <div className="table-empty" style={{ padding: '40px 20px', background: 'var(--surface)', borderRadius: 'var(--radius-sm)', border: '1px dashed var(--border)', textAlign: 'center' }}>
               <Warehouse size={36} style={{ color: 'var(--muted)', margin: '0 auto 12px', display: 'block' }} />
-              <h4 style={{ marginBottom: '8px' }}>No Active Storage Facilities Configured</h4>
+              <h4 style={{ marginBottom: '8px' }}>No Storage Facilities Found</h4>
               <p style={{ maxWidth: '520px', margin: '0 auto 16px', color: 'var(--muted)', fontSize: '13px' }}>
-                The custody register does not detect any active storage facilities. Please ensure storage locations and slot tables are seeded in the database.
+                No active storage cabinets or lockers were found in the system.
               </p>
               <button className="button button-outline" onClick={loadInventoryData}>
-                <RefreshCw size={14} /> Refresh Storage Registry
+                <RefreshCw size={14} /> Refresh Storage
               </button>
             </div>
           ) : (
@@ -947,10 +899,10 @@ export default function StaffWorkspace({
               <div>
                 <h4 style={{ margin: 0, fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <PackageCheck size={18} style={{ color: 'var(--teal)' }} />
-                  Recovered Items Awaiting Vault Locker Allocation
+                  Items Awaiting Storage Allocation
                 </h4>
                 <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--muted)' }}>
-                  Unassigned items logged from patrol sweeps and terminal intake that must be secured in a vault locker.
+                  Unassigned found items that need to be placed into a storage locker.
                 </p>
               </div>
               <span className="records-count">
@@ -1116,18 +1068,18 @@ export default function StaffWorkspace({
       )}
 
       {/* =====================================================================
-          TAB 5: SUPERVISOR TELEMETRY (Supervisor, Admin)
+          TAB 5: OVERVIEW & STATS (Supervisor, Admin)
          ===================================================================== */}
       {activeTab === 'supervisor' && (
         <section className="staff-panel">
           <div className="staff-panel-header">
             <div>
-              <h3>Supervisor Telemetry & Operational KPIs</h3>
-              <p>Executive metrics, custody lifecycle audit trails, and staff activity telemetry.</p>
+              <h3>Overview &amp; Statistics</h3>
+              <p>Key metrics, storage occupancy, claim statistics, and recent activity logs.</p>
             </div>
             <div className="staff-panel-actions">
               <button className="button button-outline" onClick={loadSupervisorData}>
-                <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> Refresh Telemetry
+                <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> Refresh Stats
               </button>
             </div>
           </div>
@@ -1135,46 +1087,46 @@ export default function StaffWorkspace({
           {stats && (
             <div className="kpi-grid">
               <div className="kpi-card">
-                <span className="kpi-label">Total Found Property</span>
+                <span className="kpi-label">Total Found Items</span>
                 <span className="kpi-value">{stats.totalFoundItems}</span>
                 <small className="kpi-sub">{stats.awaitingReviewCount} awaiting review</small>
               </div>
 
               <div className="kpi-card">
-                <span className="kpi-label">Stored in Vault</span>
+                <span className="kpi-label">Stored in Lockers</span>
                 <span className="kpi-value">{stats.storedCount}</span>
-                <small className="kpi-sub">{stats.occupiedStorageSlots} / {stats.totalStorageSlots} locker slots used</small>
+                <small className="kpi-sub">{stats.occupiedStorageSlots} / {stats.totalStorageSlots} slots used</small>
               </div>
 
               <div className="kpi-card">
-                <span className="kpi-label">Claims Verified</span>
+                <span className="kpi-label">Claims Approved</span>
                 <span className="kpi-value">{stats.approvedClaimsCount}</span>
                 <small className="kpi-sub">{stats.pendingClaimsCount} claims pending review</small>
               </div>
 
               <div className="kpi-card">
-                <span className="kpi-label">Returned to Passenger</span>
+                <span className="kpi-label">Returned to Owner</span>
                 <span className="kpi-value">{stats.returnedCount}</span>
-                <small className="kpi-sub">Fully closed lifecycle cases</small>
+                <small className="kpi-sub">Completed returns</small>
               </div>
 
               <div className="kpi-card">
-                <span className="kpi-label">Active Staff Force</span>
+                <span className="kpi-label">Staff Members</span>
                 <span className="kpi-value">{stats.activeStaffCount}</span>
-                <small className="kpi-sub">Across 7 specialized roles</small>
+                <small className="kpi-sub">Active staff accounts</small>
               </div>
 
               <div className="kpi-card">
-                <span className="kpi-label">Audit Log Events</span>
+                <span className="kpi-label">Total Activity Logs</span>
                 <span className="kpi-value">{stats.totalAuditsCount}</span>
-                <small className="kpi-sub">Immutable audit entries logged</small>
+                <small className="kpi-sub">System actions recorded</small>
               </div>
             </div>
           )}
 
           {/* Audit Logs Table */}
           <div className="supervisor-audit-section">
-            <h4>Live Operational Audit Stream</h4>
+            <h4>Recent Activity Logs</h4>
             <div className="staff-table-wrap">
               <table className="staff-table">
                 <thead>
@@ -1300,20 +1252,8 @@ export default function StaffWorkspace({
       <Dialog
         open={newFoundModalOpen}
         onOpenChange={setNewFoundModalOpen}
-        title={
-          isGroundStaff
-            ? 'Log Airside Patrol Discovery'
-            : isLostFoundAgent
-            ? 'Custody Desk Property Intake'
-            : 'Log Discovered Property into Custody'
-        }
-        description={
-          isGroundStaff
-            ? 'Establish an official chain-of-custody record for property found during security sweeps, gate checks, or cabin cleaning.'
-            : isLostFoundAgent
-            ? 'Catalog property received at the Lost & Found reception counter with condition evaluation and photographic evidence.'
-            : 'Register an item found in the terminal, security gate, or aircraft cabin into the official audit register.'
-        }
+        title="Log Found Item"
+        description="Enter details and photos of an item found at the airport."
         className="staff-modal"
       >
         <form onSubmit={handleRegisterFoundItem} className="dialog-form">
@@ -1421,18 +1361,12 @@ export default function StaffWorkspace({
             photos={newFoundForm.photos}
             onChange={(photos) => setNewFoundForm((p) => ({ ...p, photos }))}
             maxPhotos={6}
-            label="Visual Evidence & Custody Photos"
-            hint="Upload custody photos: overall item, serial number plate, identifying marks, or luggage tags."
+            label="Item Photos (Optional)"
+            hint="Upload photos of the item, serial numbers, or identifying marks."
           />
 
           <button type="submit" className="button button-primary button-full" disabled={loading}>
-            {loading
-              ? 'Submitting to Register...'
-              : isGroundStaff
-              ? 'Submit Patrol Discovery to Custody'
-              : isLostFoundAgent
-              ? 'Register Item into Counter Custody'
-              : 'Log Found Property'}
+            {loading ? 'Saving...' : 'Save Found Item'}
           </button>
         </form>
       </Dialog>
@@ -1444,7 +1378,7 @@ export default function StaffWorkspace({
         open={reviewModalOpen}
         onOpenChange={setReviewModalOpen}
         title={`Review Claim #${selectedClaim?.claimId}`}
-        description="Verify claimant ownership against airport custody records and record formal review decision."
+        description="Verify passenger ownership and record review decision."
         className="staff-modal"
       >
         {selectedClaim && (
@@ -1500,24 +1434,24 @@ export default function StaffWorkspace({
       </Dialog>
 
       {/* =====================================================================
-          MODAL C: ASSIGN STORAGE (Vault & Inventory)
+          MODAL C: ASSIGN STORAGE (Storage Lockers)
          ===================================================================== */}
       <Dialog
         open={assignModalOpen}
         onOpenChange={setAssignModalOpen}
-        title="Assign Found Property to Secure Storage"
-        description="Allocate an unassigned property item to a specific locker slot in an airport storage cabinet."
+        title="Assign Item to Storage Locker"
+        description="Assign an item to an available locker slot."
         className="staff-modal"
       >
         <form onSubmit={handleAssignStorageSubmit} className="dialog-form">
           {storageLocations.length === 0 && (
             <div style={{ padding: '10px 14px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: 'var(--radius-xs)', fontSize: '13px', color: '#b91c1c' }}>
-              <strong>Notice:</strong> No storage locations are configured in the database. Please ensure storage cabinets are seeded.
+              <strong>Notice:</strong> No storage locations are available.
             </div>
           )}
 
           <label className="field">
-            <span className="field-label">Found Item to Store *</span>
+            <span className="field-label">Select Found Item *</span>
             <select
               required
               value={assignFoundItemId}
@@ -1576,35 +1510,35 @@ export default function StaffWorkspace({
       </Dialog>
 
       {/* =====================================================================
-          MODAL D: PROCESS RETURN (Return & Dispatch)
+          MODAL D: PROCESS RETURN (Returns)
          ===================================================================== */}
       <Dialog
         open={processModalOpen}
         onOpenChange={setProcessModalOpen}
-        title="Update Dispatch / Handover Status"
-        description="Record custody handover completion or courier transit state for approved property return."
+        title="Update Return Status"
+        description="Record item collection or delivery status for this approved claim."
         className="staff-modal"
       >
         {selectedDispatch && (
           <form onSubmit={handleProcessReturnSubmit} className="dialog-form">
             <div className="claim-summary-box">
-              <div><strong>Claimant:</strong> {selectedDispatch.passengerName}</div>
-              <div><strong>Property Item:</strong> {selectedDispatch.itemName}</div>
+              <div><strong>Passenger:</strong> {selectedDispatch.passengerName}</div>
+              <div><strong>Item:</strong> {selectedDispatch.itemName}</div>
             </div>
 
             <label className="field">
-              <span className="field-label">Handover Method</span>
+              <span className="field-label">Return Method</span>
               <select
                 value={processMethod}
                 onChange={(e) => setProcessMethod(e.target.value as 'counter_handover' | 'delivery')}
               >
-                <option value="counter_handover">Terminal Counter Handover</option>
+                <option value="counter_handover">Airport Counter Handover</option>
                 <option value="delivery">Courier Delivery</option>
               </select>
             </label>
 
             <label className="field">
-              <span className="field-label">Dispatch Status *</span>
+              <span className="field-label">Return Status *</span>
               <select
                 value={processStatus}
                 onChange={(e) => setProcessStatus(e.target.value as 'initiated' | 'in_transit' | 'completed' | 'failed' | 'cancelled')}
@@ -1635,13 +1569,13 @@ export default function StaffWorkspace({
       </Dialog>
 
       {/* =====================================================================
-          MODAL E: PROVISION STAFF (System Admin)
+          MODAL E: CREATE STAFF (Admin)
          ===================================================================== */}
       <Dialog
         open={newStaffModalOpen}
         onOpenChange={setNewStaffModalOpen}
-        title="Provision Airport Staff Account"
-        description="Create an official airport staff credential with designated subrole and system authorities."
+        title="Create Staff Account"
+        description="Create a new airport staff user with designated role permissions."
         className="staff-modal"
       >
         <form onSubmit={handleCreateStaffSubmit} className="dialog-form">
@@ -1650,14 +1584,14 @@ export default function StaffWorkspace({
             <input
               type="text"
               required
-              placeholder="e.g. Airport Security Officer"
+              placeholder="e.g. Ramesh Patel"
               value={newStaffForm.fullName}
               onChange={(e) => setNewStaffForm((p) => ({ ...p, fullName: e.target.value }))}
             />
           </label>
 
           <label className="field">
-            <span className="field-label">Official Email Address *</span>
+            <span className="field-label">Email Address *</span>
             <input
               type="email"
               required
